@@ -61,11 +61,11 @@ def median_filter(A):
             # 노이즈인 곳을 계산에서 배제하기 위해 NaN으로 처리
             surr_to_update[~mask_to_update] = np.nan
             
-            # Runtime Warning 방지 및 안전한 정상 픽셀들의 중앙값 도출
+            # Runtime Warning 방지 및 안전한 정상 픽셀들의 평균값 도출
             with np.errstate(all='ignore'):
-                med_vals = np.nanmedian(surr_to_update, axis=1)
+                med_vals = np.nanmean(surr_to_update, axis=1)
             
-            # 복구된 중앙값을 대입
+            # 복구된 평균값을 대입
             img_filt[update_mask] = med_vals.astype(np.uint8)
             
             # 추가 변경이 발생했으므로 k 값은 깎지 않고 유지합니다.
