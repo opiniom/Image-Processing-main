@@ -19,8 +19,8 @@ def median_filter(A):
     m, n = A.shape
     img_filt = A.copy()
     
-    # 1루트 기준값은 6으로 시작합니다.
-    k = 6 
+    # 기준값 k를 4로 고정합니다. (테스트용)
+    k = 4 
     route_count = 0
     
     while True:
@@ -68,14 +68,11 @@ def median_filter(A):
             # 복구된 평균값을 대입
             img_filt[update_mask] = med_vals.astype(np.uint8)
             
-            # 추가 변경이 발생했으므로 k 값은 깎지 않고 유지합니다.
+            # 추가 변경이 발생했으므로 동일한 k(4) 값으로 다음 루트 진행
         else:
-            if k > 1:
-                k -= 1
-            else:
-                # k가 1까지 내려왔음에도 더 이상 바뀔 노이즈가 없다면 무한루프 방지
-                print(f"[Median Filter] 경고: 주변에 0/255만 있어 더이상 노이즈를 완전히 지울 수 없습니다. {route_count}루트에서 조기 종료합니다.")
-                break
+            # k=4 고정이므로, 이번 루트에서 변화가 없었다면 더 이상 살릴 수 있는 픽셀이 없으므로 종료합니다.
+            print(f"[Median Filter] 알림: k={k} 조건에서 복구할 수 있는 노이즈가 더 이상 없어 {route_count}루트에서 종료합니다.")
+            break
 
     return img_filt.astype(np.uint8)
 
