@@ -32,30 +32,39 @@ def calculate_metrics(img1, img2):
     
     return psnr_score, ssim_score
 
-def run_test(source_img, noise_img, filtered_img):
+def run_test(source_img, noise_img, f1_filtered, f2_filtered):
     print("="*50)
-    print("   원본 이미지 vs 노이즈 제거 이미지 차이 분석   ")
+    print("   원본 이미지 vs 필터별 복원 차이 분석   ")
     print("="*50)
     
     print("[1] 전달받은 이미지 데이터 화면 출력...")
     show_resized("1. Original Image", source_img)
     show_resized("2. Noisy Image", noise_img)
-    show_resized("3. Filtered Image", filtered_img)
+    # show_resized("3. Base Filter Result", base_filtered)
+    show_resized("3. Filter 1 (Corner Group) Result", f1_filtered)
+    show_resized("4. Filter 2 (Min Noise Dir) Result", f2_filtered)
     
     # 노이즈가 추가된 직후의 상태 측정
     psnr_noisy, ssim_noisy = calculate_metrics(source_img, noise_img)
     print(f"   -> [노이즈 상태] PSNR: {psnr_noisy:.2f} / SSIM: {ssim_noisy:.4f}")
     
-    # 필터링 후 결과 차이 분석
-    psnr_filtered, ssim_filtered = calculate_metrics(source_img, filtered_img)
-    
     print("\n" + "="*50)
     print("               최종 복원 성능 평가               ")
     print("="*50)
-    print(f"■ PSNR 점수 : {psnr_filtered:.2f} dB (높을수록 좋음, 노이즈 대비 {psnr_filtered - psnr_noisy:+.2f}dB 향상)")
-    print(f"■ SSIM 점수 : {ssim_filtered:.4f} (1.0에 가까울수록 원본과 동일, 노이즈 대비 {ssim_filtered - ssim_noisy:+.4f} 향상)")
-    print("==================================================")
     
+    filters_data = [
+        # ("Base Filter", base_filtered),
+        ("Filter 1 (Corner Group)", f1_filtered),
+        ("Filter 2 (Min Noise Dir)", f2_filtered)
+    ]
+    
+    for name, img in filters_data:
+        psnr_score, ssim_score = calculate_metrics(source_img, img)
+        print(f"\n[{name}]")
+        print(f"■ PSNR 점수 : {psnr_score:.2f} dB (노이즈 대비 {psnr_score - psnr_noisy:+.2f}dB 향상)")
+        print(f"■ SSIM 점수 : {ssim_score:.4f} (노이즈 대비 {ssim_score - ssim_noisy:+.4f} 향상)")
+        
+    print("\n==================================================")
     print("\n테스트가 완료되었습니다. 이미지 창에서 [아무 키]나 누르면 창이 닫힙니다.")
     cv2.waitKey(0)
     cv2.destroyAllWindows()

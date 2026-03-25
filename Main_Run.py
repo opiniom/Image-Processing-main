@@ -38,20 +38,37 @@ def main():
     cv2.imwrite('Results/Salt_And_Pepper_Noise_Image.png', SPnoise_img)
 
     # =======================================#
-    #   점잡음 이미지에 평균 필터 적용       #
+    #   점잡음 이미지에 기존 필터 적용       #
     # =======================================#
-    Mean_SP = myImFilter(SPnoise_img, param="mean")
-    cv2.imshow('Mean filtered SP Image ', Mean_SP)
-    cv2.waitKey(0)
-    cv2.imwrite('Results/Mean_filtered_SP_Image.png', Mean_SP)
+    # Base_Filtered = myImFilter(SPnoise_img, param="mean")
+    # cv2.imshow('Base filtered SP Image ', Base_Filtered)
+    # cv2.waitKey(0)
+    # cv2.imwrite('Results/Base_Filtered_Image.png', Base_Filtered)
 
     # =======================================#
-    #  (변경됨) 메인 함수의 처리 결과를 tester로 전달 #
+    #   제안 필터 1: 코너 그룹 분산 최소화 중간값 필터
     # =======================================#
-    print("\n[알림] 기존 필터 이미지 출력이 완료되었습니다. 자동으로 테스터(tester.py) 벤치마크를 시작합니다...")
+    Filter1_Result = custom_corner_filter(SPnoise_img)
+    cv2.imshow('Filter 1 (Corner Group) Result', Filter1_Result)
+    cv2.waitKey(0)
+    cv2.imwrite('Results/Filter1_Result.png', Filter1_Result)
+
+    # =======================================#
+    #   제안 필터 2: 노이즈 최소 방향 탐색 중간값 필터
+    # =======================================#
+    Filter2_Result = custom_direction_filter(SPnoise_img)
+    cv2.imshow('Filter 2 (Min Noise Dir) Result', Filter2_Result)
+    cv2.waitKey(0)
+    cv2.imwrite('Results/Filter2_Result.png', Filter2_Result)
+
+    # =======================================#
+    #  메인 함수의 처리 결과를 tester로 전달 #
+    # =======================================#
+    print("\n[알림] 모든 필터 이미지 처리가 완료되었습니다. 자동으로 테스터(tester.py) 벤치마크를 시작합니다...")
     import tester
-    cv2.destroyAllWindows() # 기존에 열려있던 창 치우기 (선택사항)
-    tester.run_test(imgGray, SPnoise_img, Mean_SP)
+    cv2.destroyAllWindows()
+    # 기존 Base 필터를 제외하고 새로 제안한 2가지 테스트만 진행
+    tester.run_test(imgGray, SPnoise_img, Filter1_Result, Filter2_Result)
 
 if __name__ == "__main__":
     main()

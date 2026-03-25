@@ -76,7 +76,109 @@ def median_filter(A):
 
     return img_filt.astype(np.uint8)
 
+def custom_corner_filter(A):
+    print("\n[알림] 제안 필터 1: 4방향 코너 그룹 분산 최소화 중간값 필터를 시작합니다...")
+    m, n = A.shape
+    img_filt = A.copy()
+    route_count = 0
+    
+    while True:
+        route_count += 1
+        noise_mask = (img_filt == 0) | (img_filt == 255)
+        
+        if not np.any(noise_mask):
+            print(f"[Filter 1] 모든 노이즈 제거 완료. (총 가동된 루트 수: {route_count - 1})")
+            break
+            
+        print(f"[Filter 1] 진행 중: {route_count}번째 탐색 시작", flush=True)
+        P = np.pad(img_filt, 1, mode='edge')
+        windows = np.lib.stride_tricks.sliding_window_view(P, (3, 3)).reshape(m, n, 9)
+        
+        # 4개 그룹 생성 (M, N, 4, 3)
+        groups = np.zeros((m, n, 4, 3), dtype=np.uint8)
+        groups[:, :, 0, :] = windows[:, :, [0, 1, 3]] # 좌상단 {1, 2, 4}
+        groups[:, :, 1, :] = windows[:, :, [1, 2, 5]] # 우상단 {2, 3, 6}
+        groups[:, :, 2, :] = windows[:, :, [3, 6, 7]] # 좌하단 {4, 7, 8}
+        groups[:, :, 3, :] = windows[:, :, [5, 7, 8]] # 우하단 {6, 8, 9}
+        
+        sorted_groups = np.sort(groups, axis=3)
+        A_vals = sorted_groups[:, :, :, 0].astype(np.int32)
+        C_vals = sorted_groups[:, :, :, 2].astype(np.int32)
+        B_vals = sorted_groups[:, :, :, 1]
+        
+        # 편차 계산 (|A - C|와 완전히 동일함)
+        diffs = C_vals - A_vals
+        best_group_idx = np.argmin(diffs, axis=2)
+        
+        idx_m, idx_n = np.indices((m, n))
+        best_medians = B_vals[idx_m, idx_n, best_group_idx]
+        
+        prev_img = img_filt.copy()
+        img_filt[noise_mask] = best_medians[noise_mask]
+        
+        if np.array_equal(prev_img, img_filt) or route_count >= 30:
+            print(f"[Filter 1] 알림: 더 이상 변화가 없거나 최대 루프에 도달하여 {route_count}루트에서 종료합니다.")
+            break
+            
+    return img_filt.astype(np.uint8)
 
+
+def custom_direction_filter(A):
+    print("\n[알림] 제안 필터 2: 노이즈 최소 방향 탐색 중간값 필터를 시작합니다...")
+    m, n = A.shape
+    img_filt = A.copy()
+    route_count = 0
+    
+    while True:
+        route_count += 1
+        noise_mask = (img_filt == 0) | (img_filt == 255)
+        
+        if not np.any(noise_mask):
+            print(f"[Filter 2] 모든 노이즈 제거 완료. (총 가동된 루트 수: {route_count - 1})")
+            break
+            
+        print(f"[Filter 2] 진행 중: {route_count}번째 탐색 시작", flush=True)
+        P = np.pad(img_filt, 1, mode='edge')
+        windows = np.lib.stride_tricks.sliding_window_view(P, (3, 3)).reshape(m, n, 9)
+        
+        # 4방향 그룹 생성 (M, N, 4, 5)
+        groups = np.zeros((m, n, 4, 5), dtype=np.uint8)
+        groups[:, :, 0, :] = windows[:, :, [0, 1, 2, 3, 5]] # 상 {1, 2, 3, 4, 6}
+        groups[:, :, 1, :] = windows[:, :, [1, 2, 5, 7, 8]] # 우 {2, 3, 6, 8, 9}
+        groups[:, :, 2, :] = windows[:, :, [3, 5, 6, 7, 8]] # 하 {4, 6, 7, 8, 9}
+        groups[:, :, 3, :] = windows[:, :, [0, 1, 3, 6, 7]] # 좌 {1, 2, 4, 7, 8}
+        
+        # 방향별 노이즈 개수 계산
+        is_noise = (groups == 0) | (groups == 255)
+        noise_counts = np.sum(is_noise, axis=3)
+        
+        # 노이즈가 가장 적은 방향 선택
+        best_dir_idx = np.argmin(noise_counts, axis=2)
+        
+        idx_m, idx_n = np.indices((m, n))
+        best_groups = groups[idx_m, idx_n, best_dir_idx]
+        
+        # 선택된 그룹에서 노이즈 제외
+        best_groups_float = best_groups.astype(np.float32)
+        best_noise_mask = (best_groups_float == 0) | (best_groups_float == 255)
+        best_groups_float[best_noise_mask] = np.nan
+        
+        # 안전한 평균값 도출
+        with np.errstate(all='ignore'):
+            medians = np.nanmedian(best_groups_float, axis=2)
+            
+        # 모든 5픽셀이 노이즈가 아닌 픽셀만 업데이트
+        valid_medians_mask = ~np.isnan(medians)
+        update_mask = noise_mask & valid_medians_mask
+        
+        prev_img = img_filt.copy()
+        img_filt[update_mask] = medians[update_mask].astype(np.uint8)
+        
+        if np.array_equal(prev_img, img_filt) or route_count >= 30:
+            print(f"[Filter 2] 알림: 더 이상 변화가 없거나 최대 루프에 도달하여 {route_count}루트에서 종료합니다.")
+            break
+            
+    return img_filt.astype(np.uint8)
 
 
 # 필터링 유형을 결정하는 함수입니다.
