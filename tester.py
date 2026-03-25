@@ -41,8 +41,8 @@ def run_test(source_img, noise_img, f1_filtered, f2_filtered):
     show_resized("1. Original Image", source_img)
     show_resized("2. Noisy Image", noise_img)
     # show_resized("3. Base Filter Result", base_filtered)
-    show_resized("3. Filter 1 (Corner Group) Result", f1_filtered)
-    show_resized("4. Filter 2 (Min Noise Dir) Result", f2_filtered)
+    show_resized("3. Deviation Filter (편차필터)", f1_filtered)
+    show_resized("4. Group Filter (그룹필터)", f2_filtered)
     
     # 노이즈가 추가된 직후의 상태 측정
     psnr_noisy, ssim_noisy = calculate_metrics(source_img, noise_img)
@@ -54,8 +54,8 @@ def run_test(source_img, noise_img, f1_filtered, f2_filtered):
     
     filters_data = [
         # ("Base Filter", base_filtered),
-        ("Filter 1 (Corner Group)", f1_filtered),
-        ("Filter 2 (Min Noise Dir)", f2_filtered)
+        ("Deviation Filter (편차필터)", f1_filtered),
+        ("Group Filter (그룹필터)", f2_filtered)
     ]
     
     for name, img in filters_data:

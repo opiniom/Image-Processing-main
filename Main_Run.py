@@ -46,18 +46,18 @@ def main():
     # cv2.imwrite('Results/Base_Filtered_Image.png', Base_Filtered)
 
     # =======================================#
-    #   제안 필터 1: 코너 그룹 분산 최소화 중간값 필터
+    #   제안 필터 1: 편차 필터 (Deviation Filter)
     # =======================================#
-    Filter1_Result = custom_corner_filter(SPnoise_img)
-    cv2.imshow('Filter 1 (Corner Group) Result', Filter1_Result)
+    Filter1_Result = deviation_filter(SPnoise_img)
+    cv2.imshow('Filter 1 (Deviation Filter) Result', Filter1_Result)
     cv2.waitKey(0)
     cv2.imwrite('Results/Filter1_Result.png', Filter1_Result)
 
     # =======================================#
-    #   제안 필터 2: 노이즈 최소 방향 탐색 중간값 필터
+    #   제안 필터 2: 그룹 필터 (Group Filter)
     # =======================================#
-    Filter2_Result = custom_direction_filter(SPnoise_img)
-    cv2.imshow('Filter 2 (Min Noise Dir) Result', Filter2_Result)
+    Filter2_Result = group_filter(SPnoise_img)
+    cv2.imshow('Filter 2 (Group Filter) Result', Filter2_Result)
     cv2.waitKey(0)
     cv2.imwrite('Results/Filter2_Result.png', Filter2_Result)
 

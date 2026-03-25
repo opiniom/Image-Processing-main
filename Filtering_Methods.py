@@ -76,8 +76,8 @@ def median_filter(A):
 
     return img_filt.astype(np.uint8)
 
-def custom_corner_filter(A):
-    print("\n[알림] 제안 필터 1: 4방향 코너 그룹 분산 최소화 중간값 필터를 시작합니다...")
+def deviation_filter(A):
+    print("\n[알림] 제안 필터 1: 편차 필터(Deviation Filter)를 시작합니다...")
     m, n = A.shape
     img_filt = A.copy()
     route_count = 0
@@ -87,10 +87,10 @@ def custom_corner_filter(A):
         noise_mask = (img_filt == 0) | (img_filt == 255)
         
         if not np.any(noise_mask):
-            print(f"[Filter 1] 모든 노이즈 제거 완료. (총 가동된 루트 수: {route_count - 1})")
+            print(f"[Deviation Filter] 모든 노이즈 제거 완료. (총 가동된 루트 수: {route_count - 1})")
             break
             
-        print(f"[Filter 1] 진행 중: {route_count}번째 탐색 시작", flush=True)
+        print(f"[Deviation Filter] 진행 중: {route_count}번째 탐색 시작", flush=True)
         P = np.pad(img_filt, 1, mode='edge')
         windows = np.lib.stride_tricks.sliding_window_view(P, (3, 3)).reshape(m, n, 9)
         
@@ -101,81 +101,127 @@ def custom_corner_filter(A):
         groups[:, :, 2, :] = windows[:, :, [3, 6, 7]] # 좌하단 {4, 7, 8}
         groups[:, :, 3, :] = windows[:, :, [5, 7, 8]] # 우하단 {6, 8, 9}
         
-        sorted_groups = np.sort(groups, axis=3)
-        A_vals = sorted_groups[:, :, :, 0].astype(np.int32)
-        C_vals = sorted_groups[:, :, :, 2].astype(np.int32)
-        B_vals = sorted_groups[:, :, :, 1]
+        # 유효(정상) 픽셀 마스크
+        valid_mask = (groups > 0) & (groups < 255)
+        n_valid = np.sum(valid_mask, axis=3) # (M, N, 4)
         
-        # 편차 계산 (|A - C|와 완전히 동일함)
-        diffs = C_vals - A_vals
-        best_group_idx = np.argmin(diffs, axis=2)
+        # 노이즈를 NaN으로 치환하여 편차 계산
+        groups_float = groups.astype(np.float32)
+        groups_float[~valid_mask] = np.nan
+        
+        with np.errstate(all='ignore'):
+            g_max = np.nanmax(groups_float, axis=3)
+            g_min = np.nanmin(groups_float, axis=3)
+            # 노이즈가 없는 정상 픽셀들 사이의 편차 (C - A 와 동일)
+            variance = g_max - g_min 
+            
+        # 정상 픽셀이 0개인 그룹은 편차가 999 (최악의 점수)
+        variance = np.nan_to_num(variance, nan=999)
+        
+        # 페널티: 정상 픽셀 1개당 -1000점 (정상픽셀 수가 절대적 우선순위)
+        penalty = -n_valid * 1000 + variance
+        
+        best_group_idx = np.argmin(penalty, axis=2)
         
         idx_m, idx_n = np.indices((m, n))
-        best_medians = B_vals[idx_m, idx_n, best_group_idx]
+        best_groups = groups_float[idx_m, idx_n, best_group_idx]
+        
+        with np.errstate(all='ignore'):
+            best_medians = np.nanmedian(best_groups, axis=2)
+            
+        # 정상 픽셀 중앙값이 존재하는 경우만 업데이트
+        valid_medians_mask = ~np.isnan(best_medians)
+        update_mask = noise_mask & valid_medians_mask
         
         prev_img = img_filt.copy()
-        img_filt[noise_mask] = best_medians[noise_mask]
+        img_filt[update_mask] = best_medians[update_mask].astype(np.uint8)
         
         if np.array_equal(prev_img, img_filt) or route_count >= 30:
-            print(f"[Filter 1] 알림: 더 이상 변화가 없거나 최대 루프에 도달하여 {route_count}루트에서 종료합니다.")
+            print(f"[Deviation Filter] 알림: 더 이상 변화가 없거나 최대 루프에 도달하여 {route_count}루트에서 종료합니다.")
             break
             
     return img_filt.astype(np.uint8)
 
 
-def custom_direction_filter(A):
-    print("\n[알림] 제안 필터 2: 노이즈 최소 방향 탐색 중간값 필터를 시작합니다...")
+def group_filter(A):
+    print("\n[알림] 제안 필터 2: 업그레이드된 그룹 필터(Group Filter)를 시작합니다...")
     m, n = A.shape
     img_filt = A.copy()
     route_count = 0
+    max_k = 7 # 3x3 탐색 실패 시 5x5, 7x7까지 확장
     
     while True:
         route_count += 1
         noise_mask = (img_filt == 0) | (img_filt == 255)
         
         if not np.any(noise_mask):
-            print(f"[Filter 2] 모든 노이즈 제거 완료. (총 가동된 루트 수: {route_count - 1})")
+            print(f"[Group Filter] 모든 노이즈 제거 완료. (총 가동된 루트 수: {route_count - 1})")
             break
             
-        print(f"[Filter 2] 진행 중: {route_count}번째 탐색 시작", flush=True)
-        P = np.pad(img_filt, 1, mode='edge')
-        windows = np.lib.stride_tricks.sliding_window_view(P, (3, 3)).reshape(m, n, 9)
+        print(f"[Group Filter] 진행 중: {route_count}번째 탐색 시작 (적응형 윈도우 3~7 적용)", flush=True)
         
-        # 4방향 그룹 생성 (M, N, 4, 5)
-        groups = np.zeros((m, n, 4, 5), dtype=np.uint8)
-        groups[:, :, 0, :] = windows[:, :, [0, 1, 2, 3, 5]] # 상 {1, 2, 3, 4, 6}
-        groups[:, :, 1, :] = windows[:, :, [1, 2, 5, 7, 8]] # 우 {2, 3, 6, 8, 9}
-        groups[:, :, 2, :] = windows[:, :, [3, 5, 6, 7, 8]] # 하 {4, 6, 7, 8, 9}
-        groups[:, :, 3, :] = windows[:, :, [0, 1, 3, 6, 7]] # 좌 {1, 2, 4, 7, 8}
+        unresolved_mask = noise_mask.copy()
+        new_values = np.zeros_like(img_filt, dtype=np.float32)
+        new_values[:] = np.nan
         
-        # 방향별 노이즈 개수 계산
-        is_noise = (groups == 0) | (groups == 255)
-        noise_counts = np.sum(is_noise, axis=3)
-        
-        # 노이즈가 가장 적은 방향 선택
-        best_dir_idx = np.argmin(noise_counts, axis=2)
-        
-        idx_m, idx_n = np.indices((m, n))
-        best_groups = groups[idx_m, idx_n, best_dir_idx]
-        
-        # 선택된 그룹에서 노이즈 제외
-        best_groups_float = best_groups.astype(np.float32)
-        best_noise_mask = (best_groups_float == 0) | (best_groups_float == 255)
-        best_groups_float[best_noise_mask] = np.nan
-        
-        # 안전한 평균값 도출
-        with np.errstate(all='ignore'):
-            medians = np.nanmedian(best_groups_float, axis=2)
+        # 3, 5, 7로 반경을 확장해가며 풀리지 않은 노이즈 픽셀에만 적용
+        for k in range(3, max_k + 2, 2):
+            if not np.any(unresolved_mask):
+                break
+                
+            pad_w = k // 2
+            P = np.pad(img_filt, pad_w, mode='edge')
             
-        # 모든 5픽셀이 노이즈가 아닌 픽셀만 업데이트
-        valid_medians_mask = ~np.isnan(medians)
-        update_mask = noise_mask & valid_medians_mask
-        
+            windows = np.lib.stride_tricks.sliding_window_view(P, (k, k))
+            windows = windows.reshape(m, n, k*k)
+            
+            c = k // 2
+            idx_1d = np.arange(k*k)
+            i_idx = idx_1d // k
+            j_idx = idx_1d % k
+            
+            # WxW 모양의 4방향 그룹 마스킹 알고리즘
+            up_mask = (i_idx <= c) & (idx_1d != c*k + c)
+            right_mask = (j_idx >= c) & (idx_1d != c*k + c)
+            down_mask = (i_idx >= c) & (idx_1d != c*k + c)
+            left_mask = (j_idx <= c) & (idx_1d != c*k + c)
+            dir_masks = [up_mask, right_mask, down_mask, left_mask]
+            
+            # 자원 절약을 위해 풀리지 않은 픽셀들만 추출
+            unresolved_idx = np.nonzero(unresolved_mask)
+            u_windows = windows[unresolved_idx]
+            
+            best_dir_medians = np.zeros(len(u_windows), dtype=np.float32)
+            best_dir_medians[:] = np.nan
+            min_noise_counts = np.full(len(u_windows), 99999, dtype=np.int32)
+            
+            for d_mask in dir_masks:
+                d_wind = u_windows[:, d_mask]
+                d_is_noise = (d_wind == 0) | (d_wind == 255)
+                d_noise_count = np.sum(d_is_noise, axis=1)
+                
+                d_wind_float = d_wind.astype(np.float32)
+                d_wind_float[d_is_noise] = np.nan
+                with np.errstate(all='ignore'):
+                    d_med = np.nanmedian(d_wind_float, axis=1)
+                
+                # 노이즈가 더 적고 최소 1개의 정상 픽셀이 있는 방향 채택
+                better_mask = (d_noise_count < min_noise_counts) & ~np.isnan(d_med)
+                min_noise_counts[better_mask] = d_noise_count[better_mask]
+                best_dir_medians[better_mask] = d_med[better_mask]
+                
+            valid_found = ~np.isnan(best_dir_medians)
+            resolved_m = unresolved_idx[0][valid_found]
+            resolved_n = unresolved_idx[1][valid_found]
+            new_values[resolved_m, resolved_n] = best_dir_medians[valid_found]
+            unresolved_mask[resolved_m, resolved_n] = False
+            
+        update_mask = noise_mask & ~np.isnan(new_values)
         prev_img = img_filt.copy()
-        img_filt[update_mask] = medians[update_mask].astype(np.uint8)
+        img_filt[update_mask] = new_values[update_mask].astype(np.uint8)
         
         if np.array_equal(prev_img, img_filt) or route_count >= 30:
-            print(f"[Filter 2] 알림: 더 이상 변화가 없거나 최대 루프에 도달하여 {route_count}루트에서 종료합니다.")
+            print(f"[Group Filter] 알림: 변화가 없거나 최대 루프에 도달하여 {route_count}루트에서 종료합니다.")
             break
             
     return img_filt.astype(np.uint8)
