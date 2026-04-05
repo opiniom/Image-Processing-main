@@ -32,16 +32,14 @@ def calculate_metrics(img1, img2):
     
     return psnr_score, ssim_score
 
-def run_test(source_img, noise_img, base_filtered, f2_filtered):
+def run_test(source_img, noise_img, base_filtered, f1_filtered, f2_filtered):
     print("="*50)
     print("   원본 이미지 vs 필터별 복원 차이 분석   ")
     print("="*50)
     
     print("[1] 전달받은 이미지 데이터 화면 출력...")
-    # 원본과 노이즈 이미지 출력 주석 처리 (필터 적용 결과 이미지만 보여주기 위함)
-    # show_resized("1. Original Image", source_img)
-    # show_resized("2. Noisy Image", noise_img)
     show_resized("3. Base Filter Result", base_filtered)
+    show_resized("4. Progressive Median", f1_filtered)
     show_resized("5. Group Filter", f2_filtered)
     
     # 노이즈가 추가된 직후의 상태 측정
@@ -53,7 +51,8 @@ def run_test(source_img, noise_img, base_filtered, f2_filtered):
     print("="*50)
     
     filters_data = [
-        ("Base Filter", base_filtered),
+        ("Base Filter (Mean)", base_filtered),
+        ("Progressive Median", f1_filtered),
         ("Group Filter", f2_filtered)
     ]
     

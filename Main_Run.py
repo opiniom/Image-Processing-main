@@ -75,6 +75,11 @@ def main():
         # cv2.imwrite(f'Results/Base_Filtered_{os.path.basename(img_path)}.png', Base_Filtered)
 
         # =======================================#
+        #   제안 필터 1: 점진적 미디안 필터
+        # =======================================#
+        Filter1_Result = progressive_median_filter(SPnoise_img)
+
+        # =======================================#
         #   제안 필터 2: 그룹 필터 (Group Filter)
         # =======================================#
         Filter2_Result = group_filter(SPnoise_img)
@@ -87,8 +92,8 @@ def main():
         # =======================================#
         print(f"\n[알림] {os.path.basename(img_path)} 의 모든 필터 이미지 처리가 완료되었습니다. 자동으로 테스터(tester.py) 벤치마크를 시작합니다...")
         
-        # 기존 Base 필터와 제안 필터(그룹 필터) 테스트를 진행 (imgGray_original을 원본으로 전달)
-        tester.run_test(imgGray_original, SPnoise_img, Base_Filtered, Filter2_Result)
+        # 기존 Base 필터, 점진적 미디안, 그룹 필터 테스트를 3종류 모두 진행
+        tester.run_test(imgGray_original, SPnoise_img, Base_Filtered, Filter1_Result, Filter2_Result)
 
 if __name__ == "__main__":
     main()
