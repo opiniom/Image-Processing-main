@@ -6,7 +6,7 @@ from Filtering_Methods import *
 
 def main():
     print("Headless Test Starting...")
-    image = cv2.imread("resources/testimg.png")
+    image = cv2.imread("resources/lena.bmp")
     if image is None:
         print("Error: No image")
         return
