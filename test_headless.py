@@ -17,14 +17,6 @@ def main():
     print("1. Running Base Filter...")
     Base_Filtered = myImFilter(SPnoise_img, param="mean")
     
-    print("2. Running Deviation Filter...")
-    try:
-        Filter1_Result = deviation_filter(SPnoise_img)
-        print("Deviation Filter succeeded!")
-    except Exception as e:
-        print(f"Deviation Filter failed: {e}")
-        return
-        
     print("3. Running Group Filter...")
     try:
         Filter2_Result = group_filter(SPnoise_img)
