@@ -88,12 +88,17 @@ def main():
         # cv2.imwrite(f'Results/Filter2_Result_{os.path.basename(img_path)}.png', Filter2_Result)
 
         # =======================================#
+        #   제안 필터 3: 하이브리드 필터 (HF)
+        # =======================================#
+        Filter3_Result = hybrid_filter(SPnoise_img)
+        
+        # =======================================#
         #  메인 함수의 처리 결과를 tester로 전달 #
         # =======================================#
         print(f"\n[알림] {os.path.basename(img_path)} 의 모든 필터 이미지 처리가 완료되었습니다. 자동으로 테스터(tester.py) 벤치마크를 시작합니다...")
         
-        # 기존 Base 필터, 점진적 미디안, 그룹 필터 테스트를 3종류 모두 진행
-        tester.run_test(imgGray_original, SPnoise_img, Base_Filtered, Filter1_Result, Filter2_Result)
+        # 기존 Base 필터, 점진적 미디안, 그룹 필터, 하이브리드 필터를 모두 테스트
+        tester.run_test(imgGray_original, SPnoise_img, Base_Filtered, Filter1_Result, Filter2_Result, Filter3_Result)
 
 if __name__ == "__main__":
     main()

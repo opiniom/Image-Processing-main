@@ -32,7 +32,7 @@ def calculate_metrics(img1, img2):
     
     return psnr_score, ssim_score
 
-def run_test(source_img, noise_img, base_filtered, f1_filtered, f2_filtered):
+def run_test(source_img, noise_img, base_filtered, f1_filtered, f2_filtered, hf_filtered=None):
     print("="*50)
     print("   원본 이미지 vs 필터별 복원 차이 분석   ")
     print("="*50)
@@ -41,6 +41,8 @@ def run_test(source_img, noise_img, base_filtered, f1_filtered, f2_filtered):
     show_resized("3. Base Filter Result", base_filtered)
     show_resized("4. Progressive Median", f1_filtered)
     show_resized("5. Group Filter", f2_filtered)
+    if hf_filtered is not None:
+        show_resized("6. Hybrid Filter (HF)", hf_filtered)
     
     # 노이즈가 추가된 직후의 상태 측정
     psnr_noisy, ssim_noisy = calculate_metrics(source_img, noise_img)
@@ -55,6 +57,8 @@ def run_test(source_img, noise_img, base_filtered, f1_filtered, f2_filtered):
         ("Progressive Median", f1_filtered),
         ("Group Filter", f2_filtered)
     ]
+    if hf_filtered is not None:
+        filters_data.append(("Hybrid Filter (HF)", hf_filtered))
     
     for name, img in filters_data:
         psnr_score, ssim_score = calculate_metrics(source_img, img)

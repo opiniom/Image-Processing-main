@@ -14,7 +14,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from Filtering_Methods import progressive_mean_filter, progressive_median_filter, group_filter, myImFilter
+from Filtering_Methods import progressive_mean_filter, progressive_median_filter, group_filter, myImFilter, hybrid_filter
 from tester import calculate_metrics
 
 def main():
@@ -42,7 +42,7 @@ def main():
     # 시각화용 데이터 수집
     # ------------------
     image_names = []
-    filters = ["Base Filter (Mean)", "Progressive Median", "Group Filter"]
+    filters = ["Base Filter (Mean)", "Progressive Median", "Group Filter", "Hybrid Filter (HF)"]
     psnr_data = {f: [] for f in filters}
     ssim_data = {f: [] for f in filters}
     
@@ -79,6 +79,13 @@ def main():
             psnr_data["Group Filter"].append(p)
             ssim_data["Group Filter"].append(s)
             
+            # 4. Hybrid Filter (HF)
+            hf_res, hf_routes = hybrid_filter(SPnoise_img, return_route=True)
+            p, s = calculate_metrics(imgGray_original, hf_res)
+            writer.writerow([img_name, "Hybrid Filter (HF)", round(p, 2), round(s, 4), hf_routes])
+            psnr_data["Hybrid Filter (HF)"].append(p)
+            ssim_data["Hybrid Filter (HF)"].append(s)
+            
             print(f" -> 성공적으로 데이터 추출 완료!")
 
     # ------------------
@@ -93,27 +100,25 @@ def main():
         
         x = np.arange(len(image_names)) 
         width = 0.2
-        offsets = [-1, 0, 1]
-        colors = ['#4C72B0', '#DD8452', '#55A868'] # 파랑, 주황, 초록
+        offsets = [-1.5, -0.5, 0.5, 1.5]
+        colors = ['#4C72B0', '#DD8452', '#55A868', '#C44E52'] # 파랑, 주황, 초록, 빨강
         
         # --- PSNR 플롯 ---
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(10, 8))
         for idx, f_name in enumerate(filters):
-            bars = ax.bar(x + offsets[idx]*width, psnr_data[f_name], width, label=f_name, color=colors[idx])
-            # 막대 위에 값 적어주기
+            bars = ax.barh(x + offsets[idx]*width, psnr_data[f_name], height=width, label=f_name, color=colors[idx])
             for bar in bars:
-                height = bar.get_height()
-                ax.annotate(f'{height:.2f}',
-                            xy=(bar.get_x() + bar.get_width() / 2, height),
-                            xytext=(0, 3),  # 3 points vertical offset
+                width_val = bar.get_width()
+                ax.annotate(f'{width_val:.2f}',
+                            xy=(width_val, bar.get_y() + bar.get_height() / 2),
+                            xytext=(3, 0),  # 3 points horizontal offset
                             textcoords="offset points",
-                            ha='center', va='bottom', fontsize=8)
+                            ha='left', va='center', fontsize=8)
                             
-        ax.set_ylabel('PSNR (dB)')
+        ax.set_xlabel('PSNR (dB)')
         ax.set_title('테스트 이미지별 PSNR 성능 비교 차트')
-        ax.set_xticks(x)
-        ax.set_xticklabels(image_names)
-        # 범례를 그래프 밖으로 이동
+        ax.set_yticks(x)
+        ax.set_yticklabels(image_names)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         fig.tight_layout()
         psnr_png = f"data_table/PSNR_Comparison_{timestamp}.png"
@@ -121,21 +126,21 @@ def main():
         plt.close(fig)
         
         # --- SSIM 플롯 ---
-        fig, ax = plt.subplots(figsize=(10, 6))
+        fig, ax = plt.subplots(figsize=(10, 8))
         for idx, f_name in enumerate(filters):
-            bars = ax.bar(x + offsets[idx]*width, ssim_data[f_name], width, label=f_name, color=colors[idx])
+            bars = ax.barh(x + offsets[idx]*width, ssim_data[f_name], height=width, label=f_name, color=colors[idx])
             for bar in bars:
-                height = bar.get_height()
-                ax.annotate(f'{height:.4f}',
-                            xy=(bar.get_x() + bar.get_width() / 2, height),
-                            xytext=(0, 3),
+                width_val = bar.get_width()
+                ax.annotate(f'{width_val:.4f}',
+                            xy=(width_val, bar.get_y() + bar.get_height() / 2),
+                            xytext=(3, 0),
                             textcoords="offset points",
-                            ha='center', va='bottom', fontsize=8)
+                            ha='left', va='center', fontsize=8)
                             
-        ax.set_ylabel('SSIM 점수')
+        ax.set_xlabel('SSIM 점수')
         ax.set_title('테스트 이미지별 SSIM 성능 비교 차트')
-        ax.set_xticks(x)
-        ax.set_xticklabels(image_names)
+        ax.set_yticks(x)
+        ax.set_yticklabels(image_names)
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         fig.tight_layout()
         ssim_png = f"data_table/SSIM_Comparison_{timestamp}.png"
