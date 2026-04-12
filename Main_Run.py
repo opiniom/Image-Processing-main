@@ -4,6 +4,7 @@ import random
 from Utils import *
 from Noise_Filters import *
 from Filtering_Methods import *
+from Hybrid_Filter import hybrid_filter
 
 def main():
     # ============================================#
@@ -65,25 +66,12 @@ def main():
         # 현재 읽어온 이미지가 이미 노이즈 이미지입니다.
         SPnoise_img = imgGray
 
-        # =======================================#
-        #   점잡음 이미지에 기존 필터 적용       #
-        # =======================================#
-        Base_Filtered = myImFilter(SPnoise_img, param="mean")
-        # 출력 화면은 테스터에서 처리하거나 주석처리
-        # cv2.imshow('Base filtered SP Image ', Base_Filtered)
-        # cv2.waitKey(0)
+        # ============================================#
+        #    최적화 테스트를 위해 다른 필터는 주석 처리   #
+        # ============================================#
+        # Base_Filtered = myImFilter(SPnoise_img, 'progressive_mean')
         # cv2.imwrite(f'Results/Base_Filtered_{os.path.basename(img_path)}.png', Base_Filtered)
 
-        # =======================================#
-        #   제안 필터 1: 점진적 미디안 필터
-        # =======================================#
-        Filter1_Result = progressive_median_filter(SPnoise_img)
-
-        # =======================================#
-        #   제안 필터 2: 그룹 필터 (Group Filter)
-        # =======================================#
-        Filter2_Result = group_filter(SPnoise_img)
-        # cv2.imshow('Filter 2 (Group Filter) Result', Filter2_Result)
         # cv2.waitKey(0)
         # cv2.imwrite(f'Results/Filter2_Result_{os.path.basename(img_path)}.png', Filter2_Result)
 
@@ -97,8 +85,8 @@ def main():
         # =======================================#
         print(f"\n[알림] {os.path.basename(img_path)} 의 모든 필터 이미지 처리가 완료되었습니다. 자동으로 테스터(tester.py) 벤치마크를 시작합니다...")
         
-        # 기존 Base 필터, 점진적 미디안, 그룹 필터, 하이브리드 필터를 모두 테스트
-        tester.run_test(imgGray_original, SPnoise_img, Base_Filtered, Filter1_Result, Filter2_Result, Filter3_Result)
+        # 최적화 진행중: HF 필터만 벤치마크 테스트 진행
+        tester.run_test(imgGray_original, SPnoise_img, None, None, None, Filter3_Result)
 
 if __name__ == "__main__":
     main()

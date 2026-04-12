@@ -38,9 +38,9 @@ def run_test(source_img, noise_img, base_filtered, f1_filtered, f2_filtered, hf_
     print("="*50)
     
     print("[1] 전달받은 이미지 데이터 화면 출력...")
-    show_resized("3. Base Filter Result", base_filtered)
-    show_resized("4. Progressive Median", f1_filtered)
-    show_resized("5. Group Filter", f2_filtered)
+    # show_resized("3. Base Filter Result", base_filtered)
+    # show_resized("4. Progressive Median", f1_filtered)
+    # show_resized("5. Group Filter", f2_filtered)
     if hf_filtered is not None:
         show_resized("6. Hybrid Filter (HF)", hf_filtered)
     
@@ -52,11 +52,12 @@ def run_test(source_img, noise_img, base_filtered, f1_filtered, f2_filtered, hf_
     print("               최종 복원 성능 평가               ")
     print("="*50)
     
-    filters_data = [
-        ("Base Filter (Mean)", base_filtered),
-        ("Progressive Median", f1_filtered),
-        ("Group Filter", f2_filtered)
-    ]
+    filters_data = []
+    # filters_data = [
+    #     ("Base Filter (Mean)", base_filtered),
+    #     ("Progressive Median", f1_filtered),
+    #     ("Group Filter", f2_filtered)
+    # ]
     if hf_filtered is not None:
         filters_data.append(("Hybrid Filter (HF)", hf_filtered))
     

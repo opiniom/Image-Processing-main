@@ -1,0 +1,6 @@
+﻿Image Name,Filter Name,PSNR (dB),SSIM,Route Count
+lena_10noise.bmp,Hybrid Filter (HF),43.3,0.9916,1
+lena_20noise.bmp,Hybrid Filter (HF),39.34,0.9809,1
+lena_40noise.bmp,Hybrid Filter (HF),35.05,0.9544,1
+lena_60noise.bmp,Hybrid Filter (HF),31.67,0.914,1
+lena_90noise.bmp,Hybrid Filter (HF),26.07,0.774,3

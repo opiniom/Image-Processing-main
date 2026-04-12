@@ -14,7 +14,8 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from Filtering_Methods import progressive_mean_filter, progressive_median_filter, group_filter, myImFilter, hybrid_filter
+from Filtering_Methods import progressive_mean_filter, progressive_median_filter, group_filter, myImFilter
+from Hybrid_Filter import hybrid_filter
 from tester import calculate_metrics
 
 def main():
@@ -42,7 +43,8 @@ def main():
     # 시각화용 데이터 수집
     # ------------------
     image_names = []
-    filters = ["Base Filter (Mean)", "Progressive Median", "Group Filter", "Hybrid Filter (HF)"]
+    filters = ["Hybrid Filter (HF)"] # 최적화를 위해 HF만 남김
+    # filters = ["Base Filter (Mean)", "Progressive Median", "Group Filter", "Hybrid Filter (HF)"]
     psnr_data = {f: [] for f in filters}
     ssim_data = {f: [] for f in filters}
     
@@ -58,26 +60,27 @@ def main():
             image = cv2.imread(img_path)
             SPnoise_img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
-            # 1. Base Filter (Mean)
-            base_res, base_routes = myImFilter(SPnoise_img, param="mean", return_route=True)
-            p, s = calculate_metrics(imgGray_original, base_res)
-            writer.writerow([img_name, "Base Filter (Mean)", round(p, 2), round(s, 4), base_routes])
-            psnr_data["Base Filter (Mean)"].append(p)
-            ssim_data["Base Filter (Mean)"].append(s)
+            # 최적화를 위해 다른 필터들은 임시로 비활성화
+            # # 1. Base Filter (Mean)
+            # base_res, base_routes = myImFilter(SPnoise_img, 'progressive_mean', return_route=True)
+            # p, s = calculate_metrics(imgGray_original, base_res)
+            # writer.writerow([img_name, "Base Filter (Mean)", round(p, 2), round(s, 4), base_routes])
+            # psnr_data["Base Filter (Mean)"].append(p)
+            # ssim_data["Base Filter (Mean)"].append(s)
             
-            # 2. Progressive Median
-            med_res, med_routes = progressive_median_filter(SPnoise_img, return_route=True)
-            p, s = calculate_metrics(imgGray_original, med_res)
-            writer.writerow([img_name, "Progressive Median", round(p, 2), round(s, 4), med_routes])
-            psnr_data["Progressive Median"].append(p)
-            ssim_data["Progressive Median"].append(s)
+            # # 2. Progressive Median
+            # f1_res, f1_routes = progressive_median_filter(SPnoise_img, return_route=True)
+            # p, s = calculate_metrics(imgGray_original, f1_res)
+            # writer.writerow([img_name, "Progressive Median", round(p, 2), round(s, 4), f1_routes])
+            # psnr_data["Progressive Median"].append(p)
+            # ssim_data["Progressive Median"].append(s)
             
-            # 3. Group Filter
-            grp_res, grp_routes = group_filter(SPnoise_img, return_route=True)
-            p, s = calculate_metrics(imgGray_original, grp_res)
-            writer.writerow([img_name, "Group Filter", round(p, 2), round(s, 4), grp_routes])
-            psnr_data["Group Filter"].append(p)
-            ssim_data["Group Filter"].append(s)
+            # # 3. Group Filter
+            # grp_res, grp_routes = group_filter(SPnoise_img, return_route=True)
+            # p, s = calculate_metrics(imgGray_original, grp_res)
+            # writer.writerow([img_name, "Group Filter", round(p, 2), round(s, 4), grp_routes])
+            # psnr_data["Group Filter"].append(p)
+            # ssim_data["Group Filter"].append(s)
             
             # 4. Hybrid Filter (HF)
             hf_res, hf_routes = hybrid_filter(SPnoise_img, return_route=True)
@@ -99,9 +102,9 @@ def main():
         plt.rcParams['axes.unicode_minus'] = False
         
         x = np.arange(len(image_names)) 
-        width = 0.2
-        offsets = [-1.5, -0.5, 0.5, 1.5]
-        colors = ['#4C72B0', '#DD8452', '#55A868', '#C44E52'] # 파랑, 주황, 초록, 빨강
+        width = 0.4
+        offsets = [0]
+        colors = ['#C44E52'] # 빨강 (HF 단일)
         
         # --- PSNR 플롯 ---
         fig, ax = plt.subplots(figsize=(10, 8))
@@ -119,6 +122,11 @@ def main():
         ax.set_title('테스트 이미지별 PSNR 성능 비교 차트')
         ax.set_yticks(x)
         ax.set_yticklabels(image_names)
+        
+        # 텍스트가 잘리지 않도록 X축(PSNR 점수축)을 +2 정도 여유있게 늘려줌
+        left, right = ax.get_xlim()
+        ax.set_xlim(left, right + 2)
+        
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         fig.tight_layout()
         psnr_png = f"data_table/PSNR_Comparison_{timestamp}.png"
@@ -141,6 +149,11 @@ def main():
         ax.set_title('테스트 이미지별 SSIM 성능 비교 차트')
         ax.set_yticks(x)
         ax.set_yticklabels(image_names)
+        
+        # SSIM 점수축은 최대 스케일이 1이므로 비율에 맞춰 +0.1 여유를 줌 (약 2글자 공간)
+        left, right = ax.get_xlim()
+        ax.set_xlim(left, right + 0.1)
+        
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
         fig.tight_layout()
         ssim_png = f"data_table/SSIM_Comparison_{timestamp}.png"
