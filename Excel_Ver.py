@@ -25,27 +25,30 @@ def main():
     
     target_folder = input("노이즈 이미지가 있는 폴더명을 입력하세요 (예: lena, baboon 등): ").strip()
     
-    noise_images = glob.glob(f"{target_folder}/*noise*.*")
+    base_folder_path = os.path.join("imageset", target_folder)
+    
+    noise_images = glob.glob(f"{base_folder_path}/*noise*.*")
     if not noise_images:
         # 확장자가 없을 수도 있으므로 모든 이미지 검색
-        noise_images = glob.glob(f"{target_folder}/*.bmp") + glob.glob(f"{target_folder}/*.jpg") + glob.glob(f"{target_folder}/*.png")
+        noise_images = glob.glob(f"{base_folder_path}/*.bmp") + glob.glob(f"{base_folder_path}/*.jpg") + glob.glob(f"{base_folder_path}/*.png")
         if not noise_images:
-            print(f"에러: '{target_folder}' 폴더 내에 노이즈 이미지를 찾을 수 없습니다.")
+            print(f"에러: 'imageset/{target_folder}' 폴더 내에 노이즈 이미지를 찾을 수 없습니다.")
             return
 
-    # 복원된 이미지를 저장할 폴더 생성
-    restored_folder = f"{target_folder}_Restored"
+    # 복원된 이미지를 저장할 폴더 생성 (Restored 폴더 내부)
+    restored_folder = os.path.join("Restored", target_folder)
     os.makedirs(restored_folder, exist_ok=True)
     
     # 원본 이미지 로드 로직 (메트릭 계산용)
-    orig_path = f"{target_folder}.bmp"
+    orig_path = os.path.join(base_folder_path, f"{target_folder}.bmp")
     original_image = cv2.imread(orig_path)
     calc_metrics = True
     if original_image is None:
         # 혹시 몰라 다른 포맷도 확인
         for ext in ['.png', '.jpg', '.jpeg']:
-            if cv2.imread(f"{target_folder}{ext}") is not None:
-                orig_path = f"{target_folder}{ext}"
+            test_path = os.path.join(base_folder_path, f"{target_folder}{ext}")
+            if cv2.imread(test_path) is not None:
+                orig_path = test_path
                 original_image = cv2.imread(orig_path)
                 break
 

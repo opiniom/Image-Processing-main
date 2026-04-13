@@ -19,21 +19,24 @@ def main():
     
     target_folder = input("노이즈 이미지가 있는 폴더명을 입력하세요 (예: lena, baboon 등): ").strip()
     
-    noise_images = glob.glob(f"{target_folder}/*noise*.*")
+    base_folder_path = os.path.join("imageset", target_folder)
+    
+    noise_images = glob.glob(f"{base_folder_path}/*noise*.*")
     if not noise_images:
-        noise_images = glob.glob(f"{target_folder}/*.bmp") + glob.glob(f"{target_folder}/*.jpg") + glob.glob(f"{target_folder}/*.png")
+        noise_images = glob.glob(f"{base_folder_path}/*.bmp") + glob.glob(f"{base_folder_path}/*.jpg") + glob.glob(f"{base_folder_path}/*.png")
         if not noise_images:
-            print(f"에러: '{target_folder}' 폴더 내에 노이즈 이미지를 찾을 수 없습니다.")
+            print(f"에러: 'imageset/{target_folder}' 폴더 내에 노이즈 이미지를 찾을 수 없습니다.")
             return
 
     # 원본(Ground Truth) 이미지 로드
-    orig_path = f"{target_folder}.bmp"
+    orig_path = os.path.join(base_folder_path, f"{target_folder}.bmp")
     original_image = cv2.imread(orig_path)
     has_original = True
     if original_image is None:
         for ext in ['.png', '.jpg', '.jpeg']:
-            if cv2.imread(f"{target_folder}{ext}") is not None:
-                orig_path = f"{target_folder}{ext}"
+            test_path = os.path.join(base_folder_path, f"{target_folder}{ext}")
+            if cv2.imread(test_path) is not None:
+                orig_path = test_path
                 original_image = cv2.imread(orig_path)
                 break
                 
