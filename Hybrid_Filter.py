@@ -53,13 +53,13 @@ def hybrid_filter(A, return_route=False):
         best_vals[:] = np.nan
         
         # 조건 1. 십자 정상값 >= 3 -> 십자 중앙값(Median) 연산
-        cond1 = (cross_normals >= 2)
+        cond1 = (cross_normals >= 3)
         if np.any(cond1):
             with np.errstate(all='ignore'):
                 best_vals[cond1] = np.nanmedian(u_wind3_float[cond1][:, cross_idx], axis=1)
                 
-        # 조건 2. 전체 정상값 >= 4 -> 3x3 전체 평균(Mean) 연산
-        cond2 = ~cond1 & (total_normals >= 4)
+        # 조건 2. 전체 정상값 >= 3 -> 3x3 전체 평균(Mean) 연산
+        cond2 = ~cond1 & (total_normals >= 3)
         if np.any(cond2):
             with np.errstate(all='ignore'):
                 best_vals[cond2] = np.nanmean(u_wind3_float[cond2][:, all_idx], axis=1)

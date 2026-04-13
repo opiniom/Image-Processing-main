@@ -10,12 +10,12 @@ lena_20noise.bmp,Hybrid Filter (HF),39.4,0.9811,1
 lena_40noise.bmp,Base Filter (Mean),35.27,0.9559,4
 lena_40noise.bmp,Progressive Median,34.9,0.9524,2
 lena_40noise.bmp,Group Filter,34.47,0.9509,1
-lena_40noise.bmp,Hybrid Filter (HF),35.25,0.9554,1
+lena_40noise.bmp,Hybrid Filter (HF),35.34,0.9559,1
 lena_60noise.bmp,Base Filter (Mean),31.94,0.9193,6
 lena_60noise.bmp,Progressive Median,31.6,0.9115,2
 lena_60noise.bmp,Group Filter,31.57,0.9126,1
-lena_60noise.bmp,Hybrid Filter (HF),31.81,0.9155,1
+lena_60noise.bmp,Hybrid Filter (HF),31.96,0.9175,1
 lena_90noise.bmp,Base Filter (Mean),25.08,0.7583,22
 lena_90noise.bmp,Progressive Median,26.03,0.7728,6
 lena_90noise.bmp,Group Filter,26.08,0.774,3
-lena_90noise.bmp,Hybrid Filter (HF),26.07,0.7741,3
+lena_90noise.bmp,Hybrid Filter (HF),26.08,0.7745,3

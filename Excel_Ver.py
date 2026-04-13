@@ -23,28 +23,48 @@ def main():
     print("     초고속 벤치마크 데이터 추출 및 그래프 생성기     ")
     print("="*60)
     
-    orig_path = "Results/lena.bmp"
-    original_image = cv2.imread(orig_path)
-    if original_image is None:
-        print(f"에러: '{orig_path}' 파일을 찾을 수 없습니다.")
-        return
-        
-    imgGray_original = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
-    noise_images = glob.glob("Results/*noise*.bmp")
+    target_folder = input("노이즈 이미지가 있는 폴더명을 입력하세요 (예: lena, baboon 등): ").strip()
+    
+    noise_images = glob.glob(f"{target_folder}/*noise*.*")
     if not noise_images:
-        print("에러: 'Results' 폴더 내에 노이즈 이미지를 찾을 수 없습니다.")
-        return
+        # 확장자가 없을 수도 있으므로 모든 이미지 검색
+        noise_images = glob.glob(f"{target_folder}/*.bmp") + glob.glob(f"{target_folder}/*.jpg") + glob.glob(f"{target_folder}/*.png")
+        if not noise_images:
+            print(f"에러: '{target_folder}' 폴더 내에 노이즈 이미지를 찾을 수 없습니다.")
+            return
+
+    # 복원된 이미지를 저장할 폴더 생성
+    restored_folder = f"{target_folder}_Restored"
+    os.makedirs(restored_folder, exist_ok=True)
+    
+    # 원본 이미지 로드 로직 (메트릭 계산용)
+    orig_path = f"{target_folder}.bmp"
+    original_image = cv2.imread(orig_path)
+    calc_metrics = True
+    if original_image is None:
+        # 혹시 몰라 다른 포맷도 확인
+        for ext in ['.png', '.jpg', '.jpeg']:
+            if cv2.imread(f"{target_folder}{ext}") is not None:
+                orig_path = f"{target_folder}{ext}"
+                original_image = cv2.imread(orig_path)
+                break
+
+    if original_image is None:
+        print(f"[경고] 원본 이미지('{target_folder}.bmp' 등)를 찾을 수 없어 PSNR/SSIM 평가를 생략하고 이미지 복원만 진행합니다.")
+        calc_metrics = False
+    else:
+        imgGray_original = cv2.cvtColor(original_image, cv2.COLOR_BGR2GRAY)
 
     os.makedirs("data_table", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     csv_filename = f"data_table/Benchmark_Results_{timestamp}.csv"
     
-    # ------------------
+    RUN_ALL_FILTERS = False  # 전체 벤치마크 시 True 로 설정
+    
     # 시각화용 데이터 수집
     # ------------------
     image_names = []
-    filters = ["Hybrid Filter (HF)"] # 최적화를 위해 HF만 남김
-    # filters = ["Base Filter (Mean)", "Progressive Median", "Group Filter", "Hybrid Filter (HF)"]
+    filters = ["Base Filter (Mean)", "Progressive Median", "Group Filter", "Hybrid Filter (HF)"] if RUN_ALL_FILTERS else ["Hybrid Filter (HF)"]
     psnr_data = {f: [] for f in filters}
     ssim_data = {f: [] for f in filters}
     
@@ -60,41 +80,57 @@ def main():
             image = cv2.imread(img_path)
             SPnoise_img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             
-            # 최적화를 위해 다른 필터들은 임시로 비활성화
-            # # 1. Base Filter (Mean)
-            # base_res, base_routes = myImFilter(SPnoise_img, 'progressive_mean', return_route=True)
-            # p, s = calculate_metrics(imgGray_original, base_res)
-            # writer.writerow([img_name, "Base Filter (Mean)", round(p, 2), round(s, 4), base_routes])
-            # psnr_data["Base Filter (Mean)"].append(p)
-            # ssim_data["Base Filter (Mean)"].append(s)
-            
-            # # 2. Progressive Median
-            # f1_res, f1_routes = progressive_median_filter(SPnoise_img, return_route=True)
-            # p, s = calculate_metrics(imgGray_original, f1_res)
-            # writer.writerow([img_name, "Progressive Median", round(p, 2), round(s, 4), f1_routes])
-            # psnr_data["Progressive Median"].append(p)
-            # ssim_data["Progressive Median"].append(s)
-            
-            # # 3. Group Filter
-            # grp_res, grp_routes = group_filter(SPnoise_img, return_route=True)
-            # p, s = calculate_metrics(imgGray_original, grp_res)
-            # writer.writerow([img_name, "Group Filter", round(p, 2), round(s, 4), grp_routes])
-            # psnr_data["Group Filter"].append(p)
-            # ssim_data["Group Filter"].append(s)
+            # 기존 필터 평가 (활성화 시에만)
+            if RUN_ALL_FILTERS:
+                base_res, base_routes = myImFilter(SPnoise_img, 'progressive_mean', return_route=True)
+                if calc_metrics:
+                    p1, s1 = calculate_metrics(imgGray_original, base_res)
+                    writer.writerow([img_name, "Base Filter (Mean)", round(p1, 2), round(s1, 4), base_routes])
+                    psnr_data["Base Filter (Mean)"].append(p1)
+                    ssim_data["Base Filter (Mean)"].append(s1)
+                else:
+                    writer.writerow([img_name, "Base Filter (Mean)", "-", "-", base_routes])
+                
+                f1_res, f1_routes = progressive_median_filter(SPnoise_img, return_route=True)
+                if calc_metrics:
+                    p2, s2 = calculate_metrics(imgGray_original, f1_res)
+                    writer.writerow([img_name, "Progressive Median", round(p2, 2), round(s2, 4), f1_routes])
+                    psnr_data["Progressive Median"].append(p2)
+                    ssim_data["Progressive Median"].append(s2)
+                else:
+                    writer.writerow([img_name, "Progressive Median", "-", "-", f1_routes])
+                
+                grp_res, grp_routes = group_filter(SPnoise_img, return_route=True)
+                if calc_metrics:
+                    p3, s3 = calculate_metrics(imgGray_original, grp_res)
+                    writer.writerow([img_name, "Group Filter", round(p3, 2), round(s3, 4), grp_routes])
+                    psnr_data["Group Filter"].append(p3)
+                    ssim_data["Group Filter"].append(s3)
+                else:
+                    writer.writerow([img_name, "Group Filter", "-", "-", grp_routes])
+                
             
             # 4. Hybrid Filter (HF)
             hf_res, hf_routes = hybrid_filter(SPnoise_img, return_route=True)
-            p, s = calculate_metrics(imgGray_original, hf_res)
-            writer.writerow([img_name, "Hybrid Filter (HF)", round(p, 2), round(s, 4), hf_routes])
-            psnr_data["Hybrid Filter (HF)"].append(p)
-            ssim_data["Hybrid Filter (HF)"].append(s)
             
-            print(f" -> 성공적으로 데이터 추출 완료!")
+            # 복원된 이미지 파일로 저장
+            restored_path = os.path.join(restored_folder, f"restored_{img_name}")
+            cv2.imwrite(restored_path, hf_res)
+            
+            if calc_metrics:
+                p, s = calculate_metrics(imgGray_original, hf_res)
+                writer.writerow([img_name, "Hybrid Filter (HF)", round(p, 2), round(s, 4), hf_routes])
+                psnr_data["Hybrid Filter (HF)"].append(p)
+                ssim_data["Hybrid Filter (HF)"].append(s)
+            else:
+                writer.writerow([img_name, "Hybrid Filter (HF)", "-", "-", hf_routes])
+            
+            print(f" -> 성공적으로 복원 및 데이터 추출 완료!")
 
     # ------------------
     # 시각화 (Matplotlib)
     # ------------------
-    if HAS_MATPLOTLIB:
+    if HAS_MATPLOTLIB and calc_metrics:
         print("\n -> 통계 차트 그래픽 렌더링 중...")
         # 윈도우 한글 폰트 설정
         if platform.system() == 'Windows':
@@ -102,9 +138,9 @@ def main():
         plt.rcParams['axes.unicode_minus'] = False
         
         x = np.arange(len(image_names)) 
-        width = 0.4
-        offsets = [0]
-        colors = ['#C44E52'] # 빨강 (HF 단일)
+        width = 0.2 if RUN_ALL_FILTERS else 0.4
+        offsets = [-1.5, -0.5, 0.5, 1.5] if RUN_ALL_FILTERS else [0]
+        colors = ['#4C72B0', '#DD8452', '#55A868', '#C44E52'] if RUN_ALL_FILTERS else ['#C44E52']
         
         # --- PSNR 플롯 ---
         fig, ax = plt.subplots(figsize=(10, 8))
@@ -165,10 +201,16 @@ def main():
         print(f"1. 표 형식 데이터 (CSV)    -> data_table/{os.path.basename(csv_filename)}")
         print(f"2. PSNR 그래프 사진 (.png) -> data_table/{os.path.basename(psnr_png)}")
         print(f"3. SSIM 그래프 사진 (.png) -> data_table/{os.path.basename(ssim_png)}")
+        print(f"4. 복원된 이미지 폴더      -> {restored_folder}/")
         print("="*60)
+    elif not calc_metrics:
+        print("\n[알림] 원본 이미지가 없어 차트는 생성되지 않았습니다.")
+        print(f"표 형식 데이터 (엑셀/CSV) 파일이 저장되었습니다 -> {csv_filename}")
+        print(f"복원된 이미지들이 '{restored_folder}' 폴더에 저장되었습니다.")
     else:
         print("\n[경고] matplotlib이 설치 실패하여 이미지를 생성하지 못했습니다.")
         print(f"표 형식 데이터 (엑셀/CSV) 파일 하나만 저장되었습니다 -> {csv_filename}")
+        print(f"복원된 이미지들이 '{restored_folder}' 폴더에 저장되었습니다.")
 
 if __name__ == "__main__":
     main()
