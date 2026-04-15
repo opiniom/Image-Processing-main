@@ -1,0 +1,10 @@
+﻿Image Name,Filter Name,PSNR (dB),SSIM,Route Count
+barbara_10noise.bmp,Hybrid Filter (HF),32.24,0.9837,1
+barbara_20noise.bmp,Hybrid Filter (HF),28.84,0.9637,1
+barbara_30noise.bmp,Hybrid Filter (HF),26.92,0.9413,1
+barbara_40noise.bmp,Hybrid Filter (HF),25.27,0.9134,1
+barbara_50noise.bmp,Hybrid Filter (HF),23.87,0.8791,1
+barbara_60noise.bmp,Hybrid Filter (HF),22.58,0.8373,1
+barbara_70noise.bmp,Hybrid Filter (HF),21.38,0.7847,2
+barbara_80noise.bmp,Hybrid Filter (HF),20.06,0.7148,2
+barbara_90noise.bmp,Hybrid Filter (HF),18.58,0.6172,3

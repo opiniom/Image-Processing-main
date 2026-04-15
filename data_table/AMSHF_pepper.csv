@@ -1,0 +1,10 @@
+﻿Image Name,Filter Name,PSNR (dB),SSIM,Route Count
+pepper_10noise.bmp,Hybrid Filter (HF),40.78,0.9852,1
+pepper_20noise.bmp,Hybrid Filter (HF),37.52,0.9706,1
+pepper_30noise.bmp,Hybrid Filter (HF),35.46,0.9563,1
+pepper_40noise.bmp,Hybrid Filter (HF),33.77,0.9407,1
+pepper_50noise.bmp,Hybrid Filter (HF),32.21,0.9216,1
+pepper_60noise.bmp,Hybrid Filter (HF),30.55,0.8971,1
+pepper_70noise.bmp,Hybrid Filter (HF),28.99,0.8637,2
+pepper_80noise.bmp,Hybrid Filter (HF),27.32,0.8189,2
+pepper_90noise.bmp,Hybrid Filter (HF),25.14,0.7496,3

@@ -1,7 +1,12 @@
 import numpy as np
 
-def hybrid_filter(A, return_route=False):
-    print("\n[알림] 제안 필터 3: 하이브리드 필터(Hybrid Filter - HF)를 시작합니다...")
+def hybrid_filter(A, return_route=False,
+                  cond1_thresh=3,   # 십자 Median 발동 기준 (십자 4칸 중 정상값 수, 권장: 2~4)
+                  cond2_thresh=7,   # Group Mean 발동 기준 (전체 8칸 중 정상값 수, 권장: 3~7)
+                  cond3_thresh=1,   # 전체 Mean 발동 기준 (전체 8칸 중 정상값 수, 권장: 1~3)
+                  verbose=True):    # False시 루트별 진행 로그를 출력하지 않음
+    if verbose:
+        print("\n[알림] 제안 필터 3: 하이브리드 필터(Hybrid Filter - HF)를 시작합니다...")
     m, n = A.shape
     img_filt = A.copy()
     route_count = 0
@@ -27,14 +32,16 @@ def hybrid_filter(A, return_route=False):
         noise_mask = (img_filt == 0) | (img_filt == 255)
         
         if not np.any(noise_mask):
-            print(f"[Hybrid Filter] 모든 노이즈 제거 완료. (총 가동된 루트 수: {route_count - 1})")
+            if verbose:
+                print(f"[Hybrid Filter] 모든 노이즈 제거 완료. (총 가동된 루트 수: {route_count - 1})")
             break
             
-        print(f"[Hybrid Filter] 진행 중: {route_count}번째 융합 탐색 시작", flush=True)
+        if verbose:
+            print(f"[Hybrid Filter] 진행 중: {route_count}번째 융합 탐색 시작", flush=True)
+        prev_noise_count = int(np.sum(noise_mask))
         
         unresolved_mask = noise_mask.copy()
-        new_values = np.zeros_like(img_filt, dtype=np.float32)
-        new_values[:] = np.nan
+        new_values = np.full((m, n), np.nan, dtype=np.float32)  # 단순화: np.full() 사용
         
         # 1. 3x3 범위 추출 및 평가
         P3 = np.pad(img_filt, 1, mode='edge')
@@ -49,31 +56,24 @@ def hybrid_filter(A, return_route=False):
         cross_normals = np.sum(~is_noise3[:, cross_idx], axis=1)
         total_normals = np.sum(~is_noise3[:, all_idx], axis=1)
         
-        best_vals = np.zeros(len(u_windows3), dtype=np.float32)
-        best_vals[:] = np.nan
+        best_vals = np.full(len(u_windows3), np.nan, dtype=np.float32)  # 단순화: np.full() 사용
         
-        # 조건 1. 십자 정상값 >= 3 -> 십자 중앙값(Median) 연산
-        cond1 = (cross_normals >= 3)
+        # 조건 1. 십자 정상값 >= cond1_thresh -> 십자 중앙값(Median) 연산
+        cond1 = (cross_normals >= cond1_thresh)
         if np.any(cond1):
             with np.errstate(all='ignore'):
                 best_vals[cond1] = np.nanmedian(u_wind3_float[cond1][:, cross_idx], axis=1)
                 
-        # 조건 2. 전체 정상값 >= 3 -> 3x3 전체 평균(Mean) 연산
-        cond2 = ~cond1 & (total_normals >= 3)
+        # 조건 2. 전체 정상값 >= cond2_thresh -> 3x3 방향성 그룹(Group Mean) 필터 연산
+        cond2 = ~cond1 & (total_normals >= cond2_thresh)
         if np.any(cond2):
-            with np.errstate(all='ignore'):
-                best_vals[cond2] = np.nanmean(u_wind3_float[cond2][:, all_idx], axis=1)
-                
-        # 조건 3. 전체 정상값 1~3 -> 3x3 방향성 그룹(Group Mean) 필터 연산
-        cond3 = ~cond1 & ~cond2 & (total_normals >= 1)
-        if np.any(cond3):
-            c3_windows = u_windows3[cond3]
-            c3_best_means = np.zeros(len(c3_windows), dtype=np.float32)
-            c3_best_means[:] = np.nan
-            c3_min_noise = np.full(len(c3_windows), 99999, dtype=np.int32)
+            c2_windows = u_windows3[cond2]
+            c2_best_means = np.full(len(c2_windows), np.nan, dtype=np.float32)
+            c2_min_noise = np.full(len(c2_windows), 99999, dtype=np.int32)
+            c2_best_var = np.full(len(c2_windows), np.inf, dtype=np.float32)  # 타이브레이커: 정상값 분산
             
             for d_idx in dir_indices_3:
-                d_w = c3_windows[:, d_idx]
+                d_w = c2_windows[:, d_idx]
                 d_is_n = (d_w == 0) | (d_w == 255)
                 d_noise_c = np.sum(d_is_n, axis=1)
                 d_w_f = d_w.astype(np.float32)
@@ -81,13 +81,26 @@ def hybrid_filter(A, return_route=False):
                 
                 with np.errstate(all='ignore'):
                     d_m = np.nanmean(d_w_f, axis=1)
+                    d_var = np.nanvar(d_w_f, axis=1)  # 정상값들의 분산
                 
-                better = (d_noise_c < c3_min_noise) & ~np.isnan(d_m)
-                c3_min_noise[better] = d_noise_c[better]
-                c3_best_means[better] = d_m[better]
+                valid = ~np.isnan(d_m)
+                # 1순위: 노이즈 수가 더 적은 방향
+                strictly_better = valid & (d_noise_c < c2_min_noise)
+                # 2순위(타이): 노이즈 수 동일 + 정상값 분산이 더 낮은 방향
+                tie_better = valid & (d_noise_c == c2_min_noise) & (d_var < c2_best_var)
+                update = strictly_better | tie_better
+                c2_min_noise[update] = d_noise_c[update]
+                c2_best_means[update] = d_m[update]
+                c2_best_var[update] = d_var[update]
                 
-            best_vals[cond3] = c3_best_means
-            
+            best_vals[cond2] = c2_best_means
+                
+        # 조건 3. 전체 정상값 >= cond3_thresh -> 3x3 전체 평균(Mean) 연산
+        cond3 = ~cond1 & ~cond2 & (total_normals >= cond3_thresh)
+        if np.any(cond3):
+            with np.errstate(all='ignore'):
+                best_vals[cond3] = np.nanmean(u_wind3_float[cond3][:, all_idx], axis=1)
+                
         valid_found3 = ~np.isnan(best_vals)
         res_m3 = unresolved_idx[0][valid_found3]
         res_n3 = unresolved_idx[1][valid_found3]
@@ -102,9 +115,9 @@ def hybrid_filter(A, return_route=False):
             u_idx5 = np.nonzero(unresolved_mask)
             u_windows5 = windows5[u_idx5]
             
-            c4_best_means = np.zeros(len(u_windows5), dtype=np.float32)
-            c4_best_means[:] = np.nan
+            c4_best_means = np.full(len(u_windows5), np.nan, dtype=np.float32)
             c4_min_noise = np.full(len(u_windows5), 99999, dtype=np.int32)
+            c4_best_var = np.full(len(u_windows5), np.inf, dtype=np.float32)  # 타이브레이커: 정상값 분산
             
             for d_idx in dir_indices_5:
                 d_w = u_windows5[:, d_idx]
@@ -115,10 +128,17 @@ def hybrid_filter(A, return_route=False):
                 
                 with np.errstate(all='ignore'):
                     d_m = np.nanmean(d_w_f, axis=1)
+                    d_var = np.nanvar(d_w_f, axis=1)  # 정상값들의 분산
                 
-                better = (d_noise_c < c4_min_noise) & ~np.isnan(d_m)
-                c4_min_noise[better] = d_noise_c[better]
-                c4_best_means[better] = d_m[better]
+                valid = ~np.isnan(d_m)
+                # 1순위: 노이즈 수가 더 적은 방향
+                strictly_better = valid & (d_noise_c < c4_min_noise)
+                # 2순위(타이): 노이즈 수 동일 + 정상값 분산이 더 낮은 방향
+                tie_better = valid & (d_noise_c == c4_min_noise) & (d_var < c4_best_var)
+                update = strictly_better | tie_better
+                c4_min_noise[update] = d_noise_c[update]
+                c4_best_means[update] = d_m[update]
+                c4_best_var[update] = d_var[update]
                 
             valid_found5 = ~np.isnan(c4_best_means)
             res_m5 = u_idx5[0][valid_found5]
@@ -130,8 +150,19 @@ def hybrid_filter(A, return_route=False):
         prev_img = img_filt.copy()
         img_filt[update_mask] = new_values[update_mask].astype(np.uint8)
         
+        # 복원된 픽셀 수 계산
+        curr_noise_count = int(np.sum((img_filt == 0) | (img_filt == 255)))
+        restored_count = prev_noise_count - curr_noise_count
+        
         if np.array_equal(prev_img, img_filt) or route_count >= 30:
-            print(f"[Hybrid Filter] 알림: 변화가 없거나 최대 루프에 도달하여 {route_count}루트에서 종료합니다.")
+            if verbose:
+                print(f"[Hybrid Filter] 알림: 변화가 없거나 최대 루프에 도달하여 {route_count}루트에서 종료합니다.")
+            break
+        
+        # 조기 종료: 복원된 픽셀 수가 임계값(10개) 이하이면 수렴 판정
+        if restored_count <= 10:
+            if verbose:
+                print(f"[Hybrid Filter] 조기 종료: {route_count}루트에서 복원 픽셀 수({restored_count}개)가 임계값(10개) 이하입니다.")
             break
 
     if return_route:
