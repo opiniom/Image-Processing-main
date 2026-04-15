@@ -1,8 +1,8 @@
 import numpy as np
 
 def hybrid_filter(A, return_route=False,
-                  cond1_thresh=3,   # 십자 Median 발동 기준 (십자 4칸 중 정상값 수, 권장: 2~4)
-                  cond2_thresh=7,   # Group Mean 발동 기준 (전체 8칸 중 정상값 수, 권장: 3~7)
+                  cond1_thresh=2,   # 십자 Median 발동 기준 (십자 4칸 중 정상값 수, 권장: 2~4)
+                  cond2_thresh=6,   # Group Mean 발동 기준 (전체 8칸 중 정상값 수, 권장: 3~7)
                   cond3_thresh=1,   # 전체 Mean 발동 기준 (전체 8칸 중 정상값 수, 권장: 1~3)
                   verbose=True):    # False시 루트별 진행 로그를 출력하지 않음
     if verbose:
