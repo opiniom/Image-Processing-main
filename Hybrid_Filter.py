@@ -1,10 +1,13 @@
 import numpy as np
 
-def hybrid_filter(A, return_route=False):
+def hybrid_filter(A, return_route=False, return_stats=False):
     print("\n[알림] 제안 필터 3: 하이브리드 필터(Hybrid Filter - HF)를 시작합니다...")
     m, n = A.shape
     img_filt = A.copy()
     route_count = 0
+    
+    # 복원 통계용 카운터 (필터별 복원 픽셀 수 기록)
+    stats = {'median': 0, 'mean3x3': 0, 'group3x3': 0, 'group5x5': 0}
     
     # 마스크 인덱스
     cross_idx = [1, 3, 5, 7]
@@ -89,6 +92,13 @@ def hybrid_filter(A, return_route=False):
             best_vals[cond3] = c3_best_means
             
         valid_found3 = ~np.isnan(best_vals)
+        
+        # 통계 누적: 실제로 값이 복원되는 픽셀들에 대해 어떤 조건이었는지 기록
+        if return_stats:
+            stats['median'] += int(np.sum(cond1 & valid_found3))
+            stats['mean3x3'] += int(np.sum(cond2 & valid_found3))
+            stats['group3x3'] += int(np.sum(cond3 & valid_found3))
+            
         res_m3 = unresolved_idx[0][valid_found3]
         res_n3 = unresolved_idx[1][valid_found3]
         new_values[res_m3, res_n3] = best_vals[valid_found3]
@@ -121,6 +131,9 @@ def hybrid_filter(A, return_route=False):
                 c4_best_means[better] = d_m[better]
                 
             valid_found5 = ~np.isnan(c4_best_means)
+            if return_stats:
+                stats['group5x5'] += int(np.sum(valid_found5))
+                
             res_m5 = u_idx5[0][valid_found5]
             res_n5 = u_idx5[1][valid_found5]
             new_values[res_m5, res_n5] = c4_best_means[valid_found5]
@@ -134,7 +147,15 @@ def hybrid_filter(A, return_route=False):
             print(f"[Hybrid Filter] 알림: 변화가 없거나 최대 루프에 도달하여 {route_count}루트에서 종료합니다.")
             break
 
-    if return_route:
-        remains = np.any((img_filt == 0) | (img_filt == 255))
-        return img_filt.astype(np.uint8), route_count if remains else route_count - 1
+    remains = np.any((img_filt == 0) | (img_filt == 255))
+    final_routes = route_count if remains else route_count - 1
+    
+    # 반환 형식 조합
+    if return_route and return_stats:
+        return img_filt.astype(np.uint8), final_routes, stats
+    elif return_route:
+        return img_filt.astype(np.uint8), final_routes
+    elif return_stats:
+        return img_filt.astype(np.uint8), stats
+        
     return img_filt.astype(np.uint8)
