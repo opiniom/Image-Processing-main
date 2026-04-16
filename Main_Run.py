@@ -96,7 +96,19 @@ def main():
         # =======================================#
         #   최종 개발 모델: 하이브리드 필터 (HF)    #
         # =======================================#
-        Filter3_Result = hybrid_filter(SPnoise_img)
+        Filter3_Result, stats = hybrid_filter(SPnoise_img, return_stats=True)
+        
+        # 필터 사용 통계 출력
+        print("\n" + "="*45)
+        print(" [ 하이브리드 필터(HF) 세부 복원 통계 ]")
+        print("="*45)
+        print(f" 1. 십자 Median (3x3) : {stats['median']:>7} px")
+        print(f" 2. 방향성 그룹 (3x3) : {stats['group3x3']:>7} px")
+        print(f" 3. 단순 평균   (3x3) : {stats['mean']:>7} px")
+        print(f" 4. 방향성 그룹 (5x5) : {stats['group5x5']:>7} px")
+        print("-" * 45)
+        print(f" * 총 복원 픽셀 합계  : {sum(stats.values()):>7} px")
+        print("="*45)
         
         # =======================================#
         #  메인 함수의 처리 결과를 tester로 전달 #

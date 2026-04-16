@@ -24,7 +24,7 @@ from tester import calculate_metrics
 # 탐색 파라미터 범위 설정 (필요에 따라 조정)
 # ────────────────────────────────────────────────
 COND1_RANGE = [2, 3, 4]        # 십자 Median 기준  (최대 4)
-COND2_RANGE = [3, 4, 5, 6, 7]  # Group Mean 기준   (최대 8)
+COND2_RANGE = [2, 3, 4, 5]        # Group Mean 기준   (최대 8)
 COND3_RANGE = [1, 2, 3]        # 전체 Mean 기준    (최대 8)
 
 

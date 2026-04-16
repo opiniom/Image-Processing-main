@@ -1,8 +1,8 @@
 import numpy as np
 
-def hybrid_filter(A, return_route=False,
+def hybrid_filter(A, return_route=False, return_stats=False,
                   cond1_thresh=2,   # 십자 Median 발동 기준 (십자 4칸 중 정상값 수, 권장: 2~4)
-                  cond2_thresh=6,   # Group Mean 발동 기준 (전체 8칸 중 정상값 수, 권장: 3~7)
+                  cond2_thresh=6,   # Group Mean 발동 기준 (한 그룹 내 최소 정상값 수, 권장: 3~5)
                   cond3_thresh=1,   # 전체 Mean 발동 기준 (전체 8칸 중 정상값 수, 권장: 1~3)
                   verbose=True):    # False시 루트별 진행 로그를 출력하지 않음
     if verbose:
@@ -10,6 +10,9 @@ def hybrid_filter(A, return_route=False,
     m, n = A.shape
     img_filt = A.copy()
     route_count = 0
+    
+    # 복원 통계용 카운터
+    stats = {'median': 0, 'group3x3': 0, 'mean': 0, 'group5x5': 0}
     
     # 마스크 인덱스
     cross_idx = [1, 3, 5, 7]
@@ -56,6 +59,10 @@ def hybrid_filter(A, return_route=False,
         cross_normals = np.sum(~is_noise3[:, cross_idx], axis=1)
         total_normals = np.sum(~is_noise3[:, all_idx], axis=1)
         
+        # 그룹별 정상 픽셀 수 계산 (사용자 요청: 한 그룹이라도 정상 픽셀이 4개 이상이면 발동)
+        group_normals = np.stack([np.sum(~is_noise3[:, d_idx], axis=1) for d_idx in dir_indices_3], axis=0)
+        max_group_normal = np.max(group_normals, axis=0)
+        
         best_vals = np.full(len(u_windows3), np.nan, dtype=np.float32)  # 단순화: np.full() 사용
         
         # 조건 1. 십자 정상값 >= cond1_thresh -> 십자 중앙값(Median) 연산
@@ -64,8 +71,8 @@ def hybrid_filter(A, return_route=False,
             with np.errstate(all='ignore'):
                 best_vals[cond1] = np.nanmedian(u_wind3_float[cond1][:, cross_idx], axis=1)
                 
-        # 조건 2. 전체 정상값 >= cond2_thresh -> 3x3 방향성 그룹(Group Mean) 필터 연산
-        cond2 = ~cond1 & (total_normals >= cond2_thresh)
+        # 조건 2. 한 그룹 내 정상값 >= cond2_thresh -> 3x3 방향성 그룹(Group Mean) 필터 연산
+        cond2 = ~cond1 & (max_group_normal >= cond2_thresh)
         if np.any(cond2):
             c2_windows = u_windows3[cond2]
             c2_best_means = np.full(len(c2_windows), np.nan, dtype=np.float32)
@@ -102,6 +109,13 @@ def hybrid_filter(A, return_route=False,
                 best_vals[cond3] = np.nanmean(u_wind3_float[cond3][:, all_idx], axis=1)
                 
         valid_found3 = ~np.isnan(best_vals)
+        
+        # 통계 누적: 실제로 값이 복원되는 픽셀들에 대해 어떤 조건이었는지 기록
+        if return_stats:
+            stats['median'] += int(np.sum(cond1 & valid_found3))
+            stats['group3x3'] += int(np.sum(cond2 & valid_found3))
+            stats['mean'] += int(np.sum(cond3 & valid_found3))
+
         res_m3 = unresolved_idx[0][valid_found3]
         res_n3 = unresolved_idx[1][valid_found3]
         new_values[res_m3, res_n3] = best_vals[valid_found3]
@@ -141,6 +155,9 @@ def hybrid_filter(A, return_route=False,
                 c4_best_var[update] = d_var[update]
                 
             valid_found5 = ~np.isnan(c4_best_means)
+            if return_stats:
+                stats['group5x5'] += int(np.sum(valid_found5))
+                
             res_m5 = u_idx5[0][valid_found5]
             res_n5 = u_idx5[1][valid_found5]
             new_values[res_m5, res_n5] = c4_best_means[valid_found5]
@@ -165,7 +182,15 @@ def hybrid_filter(A, return_route=False,
                 print(f"[Hybrid Filter] 조기 종료: {route_count}루트에서 복원 픽셀 수({restored_count}개)가 임계값(10개) 이하입니다.")
             break
 
-    if return_route:
-        remains = np.any((img_filt == 0) | (img_filt == 255))
-        return img_filt.astype(np.uint8), route_count if remains else route_count - 1
+    remains = np.any((img_filt == 0) | (img_filt == 255))
+    final_routes = route_count if remains else route_count - 1
+    
+    # 반환 형식 조합
+    if return_route and return_stats:
+        return img_filt.astype(np.uint8), final_routes, stats
+    elif return_route:
+        return img_filt.astype(np.uint8), final_routes
+    elif return_stats:
+        return img_filt.astype(np.uint8), stats
+    
     return img_filt.astype(np.uint8)
