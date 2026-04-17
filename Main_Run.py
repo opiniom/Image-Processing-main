@@ -105,7 +105,7 @@ def main():
         print(f" 1. 십자 Median (3x3) : {stats['median']:>7} px")
         print(f" 2. 방향성 그룹 (3x3) : {stats['group3x3']:>7} px")
         print(f" 3. 단순 평균   (3x3) : {stats['mean']:>7} px")
-        print(f" 4. 방향성 그룹 (5x5) : {stats['group5x5']:>7} px")
+        print(f" 4. 단순 평균   (5x5) : {stats['mean5x5']:>7} px")
         print("-" * 45)
         print(f" * 총 복원 픽셀 합계  : {sum(stats.values()):>7} px")
         print("="*45)

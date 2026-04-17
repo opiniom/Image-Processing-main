@@ -2,7 +2,7 @@ import numpy as np
 
 def hybrid_filter(A, return_route=False, return_stats=False,
                   cond1_thresh=2,   # 십자 Median 발동 기준 (십자 4칸 중 정상값 수, 권장: 2~4)
-                  cond2_thresh=6,   # Group Mean 발동 기준 (3x3 전체 영역 내 정상값 수, 권장: 4~6)
+                  cond2_thresh=5,   # Group Mean 발동 기준 (3x3 전체 영역 내 정상값 수, 권장: 4~6)
                   cond3_thresh=1,   # 전체 Mean 발동 기준 (전체 8칸 중 정상값 수, 권장: 1~3)
                   verbose=True):    # False시 루트별 진행 로그를 출력하지 않음
     if verbose:
@@ -12,7 +12,7 @@ def hybrid_filter(A, return_route=False, return_stats=False,
     route_count = 0
     
     # 복원 통계용 카운터
-    stats = {'median': 0, 'group3x3': 0, 'mean': 0, 'group5x5': 0}
+    stats = {'median': 0, 'group3x3': 0, 'mean': 0, 'mean5x5': 0}
     
     # 마스크 인덱스
     cross_idx = [1, 3, 5, 7]
@@ -121,7 +121,7 @@ def hybrid_filter(A, return_route=False, return_stats=False,
         new_values[res_m3, res_n3] = best_vals[valid_found3]
         unresolved_mask[res_m3, res_n3] = False
         
-        # 2. 모든 3x3 조건 실패 -> 5x5 방향성 그룹(Group Mean) 필터로 확장
+        # 2. 모든 3x3 조건 실패 -> 5x5 전체 평균(Mean) 필터로 확장
         if np.any(unresolved_mask):
             P5 = np.pad(img_filt, 2, mode='edge')
             windows5 = np.lib.stride_tricks.sliding_window_view(P5, (5, 5)).reshape(m, n, 25)
@@ -129,39 +129,21 @@ def hybrid_filter(A, return_route=False, return_stats=False,
             u_idx5 = np.nonzero(unresolved_mask)
             u_windows5 = windows5[u_idx5]
             
-            c4_best_means = np.full(len(u_windows5), np.nan, dtype=np.float32)
-            c4_min_noise = np.full(len(u_windows5), 99999, dtype=np.int32)
-            c4_best_var = np.full(len(u_windows5), np.inf, dtype=np.float32)
+            # 5x5 영역의 부동소수점 변환 및 노이즈 마스킹
+            u_wind5_float = u_windows5.astype(np.float32)
+            is_noise5 = (u_wind5_float == 0) | (u_wind5_float == 255)
+            u_wind5_float[is_noise5] = np.nan
             
-            for d_idx in dir_indices_5:
-                d_w = u_windows5[:, d_idx]
-                d_is_n = (d_w == 0) | (d_w == 255)
-                d_noise_c = np.sum(d_is_n, axis=1)
-                d_w_f = d_w.astype(np.float32)
-                d_w_f[d_is_n] = np.nan
-                
-                with np.errstate(all='ignore'):
-                    d_m = np.nanmean(d_w_f, axis=1)
-                    d_var = np.nanvar(d_w_f, axis=1)
-                
-                valid = ~np.isnan(d_m)
-                # 1순위: 노이즈 수가 더 적은 방향 (정상 픽셀이 가장 많은 방향)
-                strictly_better = valid & (d_noise_c < c4_min_noise)
-                # 2순위(타이): 노이즈 수 동일 + 정상값 분산이 더 낮은 방향
-                tie_better = valid & (d_noise_c == c4_min_noise) & (d_var < c4_best_var)
-                update = strictly_better | tie_better
-                
-                c4_min_noise[update] = d_noise_c[update]
-                c4_best_means[update] = d_m[update]
-                c4_best_var[update] = d_var[update]
+            with np.errstate(all='ignore'):
+                c4_mean_vals = np.nanmean(u_wind5_float, axis=1)
             
-            valid_found5 = ~np.isnan(c4_best_means)
+            valid_found5 = ~np.isnan(c4_mean_vals)
             if return_stats:
-                stats['group5x5'] += int(np.sum(valid_found5))
+                stats['mean5x5'] += int(np.sum(valid_found5))
                 
             res_m5 = u_idx5[0][valid_found5]
             res_n5 = u_idx5[1][valid_found5]
-            new_values[res_m5, res_n5] = c4_best_means[valid_found5]
+            new_values[res_m5, res_n5] = c4_mean_vals[valid_found5]
         
         # 이미지에 동시 적용
         update_mask = noise_mask & ~np.isnan(new_values)
