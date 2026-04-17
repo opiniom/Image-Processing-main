@@ -1,5 +1,74 @@
 import numpy as np
 
+def _apply_cross_median_3x3(u_wind_float, cross_normals, thresh, cross_idx):
+    """1단계: 십자(Cross) Median 필터 로직"""
+    cond = (cross_normals >= thresh)
+    vals = np.full(len(u_wind_float), np.nan, dtype=np.float32)
+    if np.any(cond):
+        with np.errstate(all='ignore'):
+            vals[cond] = np.nanmedian(u_wind_float[cond][:, cross_idx], axis=1)
+    return cond, vals
+
+def _apply_group_mean_3x3(u_windows, total_normals, thresh, dir_indices, prev_conds):
+    """2단계: 방향성 그룹(Group Mean) 필터 로직"""
+    cond = ~prev_conds & (total_normals >= thresh)
+    vals = np.full(len(u_windows), np.nan, dtype=np.float32)
+    if np.any(cond):
+        c_win = u_windows[cond]
+        c_best_means = np.full(len(c_win), np.nan, dtype=np.float32)
+        c_min_noise = np.full(len(c_win), 99999, dtype=np.int32)
+        c_best_var = np.full(len(c_win), np.inf, dtype=np.float32)
+        
+        for d_idx in dir_indices:
+            d_w = c_win[:, d_idx]
+            d_is_n = (d_w == 0) | (d_w == 255)
+            d_noise_c = np.sum(d_is_n, axis=1)
+            d_w_f = d_w.astype(np.float32)
+            d_w_f[d_is_n] = np.nan
+            
+            with np.errstate(all='ignore'):
+                d_m = np.nanmean(d_w_f, axis=1)
+                d_var = np.nanvar(d_w_f, axis=1)
+                
+            valid = ~np.isnan(d_m)
+            strictly_better = valid & (d_noise_c < c_min_noise)
+            tie_better = valid & (d_noise_c == c_min_noise) & (d_var < c_best_var)
+            update = strictly_better | tie_better
+            
+            c_min_noise[update] = d_noise_c[update]
+            c_best_means[update] = d_m[update]
+            c_best_var[update] = d_var[update]
+            
+        vals[cond] = c_best_means
+    return cond, vals
+
+def _apply_full_mean_3x3(u_wind_float, total_normals, thresh, all_idx, prev_conds):
+    """3단계: 3x3 전체 평균(Mean) 필터 로직"""
+    cond = ~prev_conds & (total_normals >= thresh)
+    vals = np.full(len(u_wind_float), np.nan, dtype=np.float32)
+    if np.any(cond):
+        with np.errstate(all='ignore'):
+            vals[cond] = np.nanmean(u_wind_float[cond][:, all_idx], axis=1)
+    return cond, vals
+
+def _apply_full_mean_5x5(img_filt, unresolved_mask):
+    """4단계: 5x5 범위 확장 평균(Mean) 필터 로직"""
+    m, n = img_filt.shape
+    P5 = np.pad(img_filt, 2, mode='edge')
+    windows5 = np.lib.stride_tricks.sliding_window_view(P5, (5, 5)).reshape(m, n, 25)
+    
+    u_idx5 = np.nonzero(unresolved_mask)
+    u_windows5 = windows5[u_idx5]
+    
+    u_wind5_float = u_windows5.astype(np.float32)
+    is_noise5 = (u_wind5_float == 0) | (u_wind5_float == 255)
+    u_wind5_float[is_noise5] = np.nan
+    
+    with np.errstate(all='ignore'):
+        c4_mean_vals = np.nanmean(u_wind5_float, axis=1)
+        
+    return u_idx5, c4_mean_vals
+
 def hybrid_filter(A, return_route=False, return_stats=False,
                   cond1_thresh=2,   # 십자 Median 발동 기준 (십자 4칸 중 정상값 수, 권장: 2~4)
                   cond2_thresh=5,   # Group Mean 발동 기준 (3x3 전체 영역 내 정상값 수, 권장: 4~6)
@@ -23,12 +92,6 @@ def hybrid_filter(A, return_route=False, return_stats=False,
         [3, 5, 6, 7, 8],
         [0, 1, 3, 6, 7]
     ]
-    dir_indices_5 = [
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14],             # Up
-        [2, 3, 4, 7, 8, 9, 13, 14, 17, 18, 19, 22, 23, 24],          # Right
-        [10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24],   # Down
-        [0, 1, 2, 5, 6, 7, 10, 11, 15, 16, 17, 20, 21, 22]          # Left
-    ]
 
     while True:
         route_count += 1
@@ -44,9 +107,9 @@ def hybrid_filter(A, return_route=False, return_stats=False,
         prev_noise_count = int(np.sum(noise_mask))
         
         unresolved_mask = noise_mask.copy()
-        new_values = np.full((m, n), np.nan, dtype=np.float32)  # 단순화: np.full() 사용
+        new_values = np.full((m, n), np.nan, dtype=np.float32)
         
-        # 1. 3x3 범위 추출 및 평가
+        # --- 3x3 단계 기초 데이터 준비 ---
         P3 = np.pad(img_filt, 1, mode='edge')
         windows3 = np.lib.stride_tricks.sliding_window_view(P3, (3, 3)).reshape(m, n, 9)
         unresolved_idx = np.nonzero(unresolved_mask)
@@ -59,58 +122,27 @@ def hybrid_filter(A, return_route=False, return_stats=False,
         cross_normals = np.sum(~is_noise3[:, cross_idx], axis=1)
         total_normals = np.sum(~is_noise3[:, all_idx], axis=1)
         
-        # 그룹별 정상 픽셀 수 계산 (사용자 요청: 한 그룹이라도 정상 픽셀이 4개 이상이면 발동)
-        group_normals = np.stack([np.sum(~is_noise3[:, d_idx], axis=1) for d_idx in dir_indices_3], axis=0)
-        max_group_normal = np.max(group_normals, axis=0)
+        best_vals = np.full(len(u_windows3), np.nan, dtype=np.float32)
         
-        best_vals = np.full(len(u_windows3), np.nan, dtype=np.float32)  # 단순화: np.full() 사용
+        # ==========================================
+        # 각 필터 컴포넌트 호출부 (함수화 적용)
+        # ==========================================
         
-        # 조건 1. 십자 정상값 >= cond1_thresh -> 십자 중앙값(Median) 연산
-        cond1 = (cross_normals >= cond1_thresh)
-        if np.any(cond1):
-            with np.errstate(all='ignore'):
-                best_vals[cond1] = np.nanmedian(u_wind3_float[cond1][:, cross_idx], axis=1)
-                
-        # 조건 2. 전체 정상값 >= cond2_thresh -> 3x3 방향성 그룹(Group Mean) 필터 연산
-        cond2 = ~cond1 & (total_normals >= cond2_thresh)
-        if np.any(cond2):
-            c2_windows = u_windows3[cond2]
-            c2_best_means = np.full(len(c2_windows), np.nan, dtype=np.float32)
-            c2_min_noise = np.full(len(c2_windows), 99999, dtype=np.int32)
-            c2_best_var = np.full(len(c2_windows), np.inf, dtype=np.float32)  # 타이브레이커: 정상값 분산
-            
-            for d_idx in dir_indices_3:
-                d_w = c2_windows[:, d_idx]
-                d_is_n = (d_w == 0) | (d_w == 255)
-                d_noise_c = np.sum(d_is_n, axis=1)
-                d_w_f = d_w.astype(np.float32)
-                d_w_f[d_is_n] = np.nan
-                
-                with np.errstate(all='ignore'):
-                    d_m = np.nanmean(d_w_f, axis=1)
-                    d_var = np.nanvar(d_w_f, axis=1)  # 정상값들의 분산
-                
-                valid = ~np.isnan(d_m)
-                # 1순위: 노이즈 수가 더 적은 방향
-                strictly_better = valid & (d_noise_c < c2_min_noise)
-                # 2순위(타이): 노이즈 수 동일 + 정상값 분산이 더 낮은 방향
-                tie_better = valid & (d_noise_c == c2_min_noise) & (d_var < c2_best_var)
-                update = strictly_better | tie_better
-                c2_min_noise[update] = d_noise_c[update]
-                c2_best_means[update] = d_m[update]
-                c2_best_var[update] = d_var[update]
-                
-            best_vals[cond2] = c2_best_means
-                
-        # 조건 3. 전체 정상값 >= cond3_thresh -> 3x3 전체 평균(Mean) 연산
-        cond3 = ~cond1 & ~cond2 & (total_normals >= cond3_thresh)
-        if np.any(cond3):
-            with np.errstate(all='ignore'):
-                best_vals[cond3] = np.nanmean(u_wind3_float[cond3][:, all_idx], axis=1)
-                
+        # 1. 십자 중앙값(Median) 연산
+        cond1, vals1 = _apply_cross_median_3x3(u_wind3_float, cross_normals, cond1_thresh, cross_idx)
+        best_vals[cond1] = vals1[cond1]
+        
+        # 2. 3x3 방향성 그룹(Group Mean) 필터 연산
+        cond2, vals2 = _apply_group_mean_3x3(u_windows3, total_normals, cond2_thresh, dir_indices_3, cond1)
+        best_vals[cond2] = vals2[cond2]
+        
+        # 3. 3x3 전체 평균(Mean) 연산
+        cond3, vals3 = _apply_full_mean_3x3(u_wind3_float, total_normals, cond3_thresh, all_idx, cond1 | cond2)
+        best_vals[cond3] = vals3[cond3]
+        
+        # 3x3 단계 결과 통합
         valid_found3 = ~np.isnan(best_vals)
         
-        # 통계 누적: 실제로 값이 복원되는 픽셀들에 대해 어떤 조건이었는지 기록
         if return_stats:
             stats['median'] += int(np.sum(cond1 & valid_found3))
             stats['group3x3'] += int(np.sum(cond2 & valid_found3))
@@ -121,29 +153,19 @@ def hybrid_filter(A, return_route=False, return_stats=False,
         new_values[res_m3, res_n3] = best_vals[valid_found3]
         unresolved_mask[res_m3, res_n3] = False
         
-        # 2. 모든 3x3 조건 실패 -> 5x5 전체 평균(Mean) 필터로 확장
+        # 4. 모든 3x3 조건 실패 -> 5x5 범위 확장 평균(Mean) 필터로 확장
         if np.any(unresolved_mask):
-            P5 = np.pad(img_filt, 2, mode='edge')
-            windows5 = np.lib.stride_tricks.sliding_window_view(P5, (5, 5)).reshape(m, n, 25)
-            
-            u_idx5 = np.nonzero(unresolved_mask)
-            u_windows5 = windows5[u_idx5]
-            
-            # 5x5 영역의 부동소수점 변환 및 노이즈 마스킹
-            u_wind5_float = u_windows5.astype(np.float32)
-            is_noise5 = (u_wind5_float == 0) | (u_wind5_float == 255)
-            u_wind5_float[is_noise5] = np.nan
-            
-            with np.errstate(all='ignore'):
-                c4_mean_vals = np.nanmean(u_wind5_float, axis=1)
-            
+            u_idx5, c4_mean_vals = _apply_full_mean_5x5(img_filt, unresolved_mask)
             valid_found5 = ~np.isnan(c4_mean_vals)
+            
             if return_stats:
                 stats['mean5x5'] += int(np.sum(valid_found5))
                 
             res_m5 = u_idx5[0][valid_found5]
             res_n5 = u_idx5[1][valid_found5]
             new_values[res_m5, res_n5] = c4_mean_vals[valid_found5]
+        
+        # ==========================================
         
         # 이미지에 동시 적용
         update_mask = noise_mask & ~np.isnan(new_values)
