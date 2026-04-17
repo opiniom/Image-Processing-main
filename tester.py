@@ -47,29 +47,9 @@ def run_test(source_img, noise_img, base_filtered, f1_filtered, f2_filtered, hf_
         show_resized("6. Hybrid Filter (HF)", hf_filtered)
     
     # 노이즈가 추가된 직후의 상태 측정
-    psnr_noisy, ssim_noisy = calculate_metrics(source_img, noise_img)
+    # psnr_noisy, ssim_noisy = calculate_metrics(source_img, noise_img)
     
-    print("\n" + "="*50)
-    print("               최종 복원 성능 평가               ")
-    print("="*50)
-    
-    filters_data = [] 
-    if base_filtered is not None:
-        filters_data.extend([
-            ("Base Filter (Mean)", base_filtered),
-            ("Progressive Median", f1_filtered),
-            ("Group Filter", f2_filtered)
-        ])
-    if hf_filtered is not None:
-        filters_data.append(("Hybrid Filter (HF)", hf_filtered))
-    
-    for name, img in filters_data:
-        psnr_score, ssim_score = calculate_metrics(source_img, img)
-        print(f"\n[{name}]")
-        print(f"■ PSNR 점수 : {psnr_score:.2f} dB (노이즈 대비 {psnr_score - psnr_noisy:+.2f}dB 향상)")
-        print(f"■ SSIM 점수 : {ssim_score:.4f} (노이즈 대비 {ssim_score - ssim_noisy:+.4f} 향상)")
-        
-    print("\n==================================================")
+    # 최종 복원 성능 평가 부분 삭제됨
     print("\n테스트가 완료되었습니다. 이미지 창에서 [아무 키]나 누르면 창이 닫힙니다.")
     cv2.waitKey(0)
     cv2.destroyAllWindows()

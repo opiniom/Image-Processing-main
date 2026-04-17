@@ -6,6 +6,7 @@ from Noise_Filters import *
 from Filtering_Methods import *
 from Hybrid_Filter import hybrid_filter
 from AMSHF import amshf_filter
+from AHF import ahf_filter
 import os
 
 RUN_ALL_FILTERS = False  # 전체 필터 비교 시 True로 변경
@@ -103,26 +104,29 @@ def main():
         #   실험용 모델: AMSHF (newgruop.txt)     #
         # =======================================#
         AMSHF_Result, amshf_stats = amshf_filter(SPnoise_img, return_stats=True)
+
+        # =======================================#
+        #   Adaptive Hybrid Filter (AHF)          #
+        # =======================================#
+        AHF_Result, ahf_stats = ahf_filter(SPnoise_img, return_stats=True)
         
         # 필터 사용 통계 출력
-        print("\n" + "="*45)
-        print(" [ 하이브리드 필터(HF) vs 실험용(AMSHF) 비교 ]")
-        print("="*45)
-        print(f"{'구분':<15} | {'HF':>10} | {'AMSHF':>10}")
-        print("-" * 45)
-        print(f"{'1. Median (3x3)':<15} | {stats['median']:>10} | {amshf_stats['median']:>10} px")
-        print(f"{'2. Group  (3x3)':<15} | {stats['group3x3']:>10} | {amshf_stats['group3x3']:>10} px")
-        print(f"{'3. Mean   (3x3)':<15} | {stats['mean']:>10} | {amshf_stats['mean']:>10} px")
-        print(f"{'4. Mean   (5x5)':<15} | {stats['mean5x5']:>10} | {amshf_stats['mean5x5']:>10} px")
-        print("-" * 45)
-        print(f"{'총 복원 픽셀 합계':<15} | {sum(stats.values()):>10} | {sum(amshf_stats.values()):>10} px")
-        print("="*45)
+        print("\n" + "="*55)
+        print(" [ 하이브리드 필터(HF) vs AMSHF vs 제안 모델(AHF) 비교 ]")
+        print("="*55)
+        print(f"{'구분':<15} | {'HF':>8} | {'AMSHF':>8} | {'AHF':>8}")
+        print("-" * 55)
+        print(f"{'1. Median':<15} | {stats['median']:>8} | {amshf_stats['median']:>8} | {ahf_stats['median']:>8} px")
+        print(f"{'2. Group':<15} | {stats['group3x3']:>8} | {amshf_stats['group3x3']:>8} | {ahf_stats['group']:>8} px")
+        print(f"{'3. Mean':<15} | {stats['mean']+stats['mean5x5']:>8} | {amshf_stats['mean']+amshf_stats['mean5x5']:>8} | {ahf_stats['mean']:>8} px")
+        print("-" * 55)
+        hf_total = sum(stats.values())
+        am_total = sum(amshf_stats.values())
+        ah_total = sum(ahf_stats.values())
+        print(f"{'총 복원 합계':<15} | {hf_total:>8} | {am_total:>8} | {ah_total:>8} px")
+        print("="*55)
 
-        if has_original:
-            import tester
-            p_hf, s_hf = tester.calculate_metrics(imgGray_original, Filter3_Result)
-            p_am, s_am = tester.calculate_metrics(imgGray_original, AMSHF_Result)
-            print(f" [성능 비교] HF: {p_hf:.2f}dB / {s_hf:.4f} | AMSHF: {p_am:.2f}dB / {s_am:.4f}")
+        # 성능 비교 출력 부분 삭제됨
 
         
         # =======================================#
