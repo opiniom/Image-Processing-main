@@ -5,6 +5,7 @@ from Utils import *
 from Noise_Filters import *
 from Filtering_Methods import *
 from Hybrid_Filter import hybrid_filter
+from AMSHF import amshf_filter
 import os
 
 RUN_ALL_FILTERS = False  # 전체 필터 비교 시 True로 변경
@@ -98,17 +99,31 @@ def main():
         # =======================================#
         Filter3_Result, stats = hybrid_filter(SPnoise_img, return_stats=True)
         
+        # =======================================#
+        #   실험용 모델: AMSHF (newgruop.txt)     #
+        # =======================================#
+        AMSHF_Result, amshf_stats = amshf_filter(SPnoise_img, return_stats=True)
+        
         # 필터 사용 통계 출력
         print("\n" + "="*45)
-        print(" [ 하이브리드 필터(HF) 세부 복원 통계 ]")
+        print(" [ 하이브리드 필터(HF) vs 실험용(AMSHF) 비교 ]")
         print("="*45)
-        print(f" 1. 십자 Median (3x3) : {stats['median']:>7} px")
-        print(f" 2. 방향성 그룹 (3x3) : {stats['group3x3']:>7} px")
-        print(f" 3. 단순 평균   (3x3) : {stats['mean']:>7} px")
-        print(f" 4. 단순 평균   (5x5) : {stats['mean5x5']:>7} px")
+        print(f"{'구분':<15} | {'HF':>10} | {'AMSHF':>10}")
         print("-" * 45)
-        print(f" * 총 복원 픽셀 합계  : {sum(stats.values()):>7} px")
+        print(f"{'1. Median (3x3)':<15} | {stats['median']:>10} | {amshf_stats['median']:>10} px")
+        print(f"{'2. Group  (3x3)':<15} | {stats['group3x3']:>10} | {amshf_stats['group3x3']:>10} px")
+        print(f"{'3. Mean   (3x3)':<15} | {stats['mean']:>10} | {amshf_stats['mean']:>10} px")
+        print(f"{'4. Mean   (5x5)':<15} | {stats['mean5x5']:>10} | {amshf_stats['mean5x5']:>10} px")
+        print("-" * 45)
+        print(f"{'총 복원 픽셀 합계':<15} | {sum(stats.values()):>10} | {sum(amshf_stats.values()):>10} px")
         print("="*45)
+
+        if has_original:
+            import tester
+            p_hf, s_hf = tester.calculate_metrics(imgGray_original, Filter3_Result)
+            p_am, s_am = tester.calculate_metrics(imgGray_original, AMSHF_Result)
+            print(f" [성능 비교] HF: {p_hf:.2f}dB / {s_hf:.4f} | AMSHF: {p_am:.2f}dB / {s_am:.4f}")
+
         
         # =======================================#
         #  메인 함수의 처리 결과를 tester로 전달 #

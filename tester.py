@@ -48,7 +48,6 @@ def run_test(source_img, noise_img, base_filtered, f1_filtered, f2_filtered, hf_
     
     # 노이즈가 추가된 직후의 상태 측정
     psnr_noisy, ssim_noisy = calculate_metrics(source_img, noise_img)
-    print(f"   -> [노이즈 상태] PSNR: {psnr_noisy:.2f} / SSIM: {ssim_noisy:.4f}")
     
     print("\n" + "="*50)
     print("               최종 복원 성능 평가               ")
