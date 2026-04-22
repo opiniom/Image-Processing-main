@@ -44,10 +44,14 @@ def _apply_mean(u_wind_float, indices):
         vals = np.nanmean(u_wind_float[:, indices], axis=1)
     return vals
 
-def ahf_filter(A, return_route=False, return_stats=False, verbose=True, 
-               k_neu_th=2, k_moo_th=5, k_mean_th=2):
+def amshf_filter(A, return_route=False, return_stats=False, verbose=True, 
+                 k_neu_th=2, k_moo_th=5, k_mean_th=2):
+    """
+    AMSHF (Adaptive Multi-stage Hybrid Filter) - Final Version
+    Incorporates the Adaptive Hybrid Filter (AHF) logic.
+    """
     if verbose:
-        print(f"\n[알림] AHF 필터 시작 (k_neu_th={k_neu_th}, k_moo_th={k_moo_th}, k_mean_th={k_mean_th})")
+        print(f"\n[알림] 필터 시작 (k_neu_th={k_neu_th}, k_moo_th={k_moo_th}, k_mean_th={k_mean_th})")
     
     m, n = A.shape
     img_filt = A.copy()
@@ -82,11 +86,11 @@ def ahf_filter(A, return_route=False, return_stats=False, verbose=True,
         noise_mask = (img_filt == 0) | (img_filt == 255)
         if not np.any(noise_mask):
             if verbose:
-                print(f"[AHF] 모든 노이즈 제거 완료. (총 루트 수: {route_count - 1})")
+                print(f"[필터] 모든 노이즈 제거 완료. (총 루트 수: {route_count - 1})")
             break
             
         if verbose:
-            print(f"[AHF] 루트 {route_count} 시작 (반경 r=1~2 순차적 적용)", flush=True)
+            print(f"[필터] 루트 {route_count} 시작 (반경 r=1~2 순차적 적용)", flush=True)
             
         restored_this_route = 0
         
@@ -147,7 +151,7 @@ def ahf_filter(A, return_route=False, return_stats=False, verbose=True,
 
         if restored_this_route == 0 or route_count >= 30:
             if verbose:
-                print(f"[AHF] 조기 종료 혹은 최대 루프 도달 (루트 {route_count})")
+                print(f"[필터] 조기 종료 혹은 최대 루프 도달 (루트 {route_count})")
             break
 
     remains = np.any((img_filt == 0) | (img_filt == 255))

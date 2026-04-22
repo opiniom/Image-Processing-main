@@ -1,15 +1,9 @@
 import numpy as np
 import cv2
-import random
-from Utils import *
-from Noise_Filters import *
-from Filtering_Methods import *
-from Hybrid_Filter import hybrid_filter
 from AMSHF import amshf_filter
-from AHF import ahf_filter
 import os
+import tester
 
-RUN_ALL_FILTERS = False  # 전체 필터 비교 시 True로 변경
 
 def main():
     # ============================================#
@@ -87,43 +81,22 @@ def main():
         SPnoise_img = imgGray
 
         # =======================================#
-        #   과거 필터들을 옵션 플래그로 깔끔하게 정리  #
+        #   최종 개발 모델: AMSHF (Adaptive)      #
         # =======================================#
-        Base_Filtered, Filter1_Result, Filter2_Result = None, None, None
-        if RUN_ALL_FILTERS:
-            Base_Filtered = myImFilter(SPnoise_img, param="mean")
-            Filter1_Result = progressive_median_filter(SPnoise_img)
-            Filter2_Result = group_filter(SPnoise_img)
-            
-        # =======================================#
-        #   최종 개발 모델: 하이브리드 필터 (HF)    #
-        # =======================================#
-        Filter3_Result, stats = hybrid_filter(SPnoise_img, return_stats=True)
-        
-        # =======================================#
-        #   실험용 모델: AMSHF (newgruop.txt)     #
-        # =======================================#
-        AMSHF_Result, amshf_stats = amshf_filter(SPnoise_img, return_stats=True)
-
-        # =======================================#
-        #   Adaptive Hybrid Filter (AHF)          #
-        # =======================================#
-        AHF_Result, ahf_stats = ahf_filter(SPnoise_img, return_stats=True)
+        result_img, stats = amshf_filter(SPnoise_img, return_stats=True)
         
         # 필터 사용 통계 출력
         print("\n" + "="*55)
-        print(" [ 하이브리드 필터(HF) vs AMSHF vs 제안 모델(AHF) 비교 ]")
+        print(" [ 최종 AMSHF 필터 복원 통계 ]")
         print("="*55)
-        print(f"{'구분':<15} | {'HF':>8} | {'AMSHF':>8} | {'AHF':>8}")
+        print(f"{'구분':<15} | {'복원 픽셀 수':>12}")
         print("-" * 55)
-        print(f"{'1. Median':<15} | {stats['median']:>8} | {amshf_stats['median']:>8} | {ahf_stats['median']:>8} px")
-        print(f"{'2. Group':<15} | {stats['group3x3']:>8} | {amshf_stats['group3x3']:>8} | {ahf_stats['group']:>8} px")
-        print(f"{'3. Mean':<15} | {stats['mean']+stats['mean5x5']:>8} | {amshf_stats['mean']+amshf_stats['mean5x5']:>8} | {ahf_stats['mean']:>8} px")
+        print(f"{'1. Median':<15} | {stats['median']:>12} px")
+        print(f"{'2. Group':<15} | {stats['group']:>12} px")
+        print(f"{'3. Mean':<15} | {stats['mean']:>12} px")
         print("-" * 55)
-        hf_total = sum(stats.values())
-        am_total = sum(amshf_stats.values())
-        ah_total = sum(ahf_stats.values())
-        print(f"{'총 복원 합계':<15} | {hf_total:>8} | {am_total:>8} | {ah_total:>8} px")
+        total_restored = sum(stats.values())
+        print(f"{'총 복원 합계':<15} | {total_restored:>12} px")
         print("="*55)
 
         # 성능 비교 출력 부분 삭제됨
@@ -134,17 +107,17 @@ def main():
         
         if has_original:
             print(f"\n[알림] {os.path.basename(img_path)} 의 영상 처리가 완료되었습니다. 테스터(tester.py) 벤치마크를 시작합니다...")
-            tester.run_test(imgGray_original, SPnoise_img, Base_Filtered, Filter1_Result, Filter2_Result, Filter3_Result)
+            # tester에는 이전 인자 구조가 남아있을 수 있으므로 필요한 부분만 전달
+            tester.run_test(imgGray_original, SPnoise_img, None, None, None, result_img)
         else:
             print(f"\n[알림] {os.path.basename(img_path)} 처리가 완료되었습니다. 시각적 확인 팝업을 띄웁니다...")
             print("창을 닫으려면 [아무 키]나 누르세요.")
             
-            # 비율 유지하며 크기 600x600 고정 후 이미지 띄우기
             display_noisy = cv2.resize(SPnoise_img, (512, 512), interpolation=cv2.INTER_AREA)
-            display_hf = cv2.resize(Filter3_Result, (512, 512), interpolation=cv2.INTER_AREA)
+            display_res = cv2.resize(result_img, (512, 512), interpolation=cv2.INTER_AREA)
             
             cv2.imshow("1. Corrupted Noise Image", display_noisy)
-            cv2.imshow("2. Hybrid Filter (HF) Restored", display_hf)
+            cv2.imshow("2. AMSHF Restored", display_res)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
