@@ -19,6 +19,7 @@ import platform
 
 from Hybrid_Filter import hybrid_filter
 from AMSHF import amshf_filter
+from AHF import ahf_filter
 from tester import calculate_metrics
 
 def main():
@@ -82,24 +83,30 @@ def main():
                 # f1_res, f1_routes = progressive_median_filter(SPnoise_img, return_route=True)
                 # grp_res, grp_routes = group_filter(SPnoise_img, return_route=True)
                 
-                # 4. Hybrid Filter (HF) 실행
-                hf_res, hf_routes = hybrid_filter(SPnoise_img, return_route=True, verbose=False)
+                # 4. Hybrid Filter (HF) 실행 (주석 처리)
+                # hf_res, hf_routes = hybrid_filter(SPnoise_img, return_route=True, verbose=False)
                 
-                # 5. AMSHF (Experimental) 실행
-                am_res, am_routes = amshf_filter(SPnoise_img, return_route=True, verbose=False)
+                # 5. AMSHF (Experimental) 실행 (주석 처리)
+                # am_res, am_routes = amshf_filter(SPnoise_img, return_route=True, verbose=False)
+
+                # 6. AHF (Algorithm.txt) 실행
+                ah_res, ah_routes = ahf_filter(SPnoise_img, return_route=True, verbose=False)
                 
-                # 복원된 이미지 저장 (HF 우선저장, 필요시 AMSHF도 저장가능)
+                # 복원된 이미지 저장 (AHF 저장)
                 restored_path = os.path.join(restored_folder, f"restored_{img_name}")
-                cv2.imwrite(restored_path, hf_res)
+                cv2.imwrite(restored_path, ah_res)
                 
                 if calc_metrics:
-                    p_hf, s_hf = calculate_metrics(imgGray_original, hf_res)
-                    p_am, s_am = calculate_metrics(imgGray_original, am_res)
-                    writer.writerow([img_name, "Hybrid Filter (HF)", round(p_hf, 2), round(s_hf, 4), hf_routes])
-                    writer.writerow([img_name, "AMSHF (Experiment)", round(p_am, 2), round(s_am, 4), am_routes])
+                    # p_hf, s_hf = calculate_metrics(imgGray_original, hf_res)
+                    # p_am, s_am = calculate_metrics(imgGray_original, am_res)
+                    p_ah, s_ah = calculate_metrics(imgGray_original, ah_res)
+                    # writer.writerow([img_name, "Hybrid Filter (HF)", round(p_hf, 2), round(s_hf, 4), hf_routes])
+                    # writer.writerow([img_name, "AMSHF (Experiment)", round(p_am, 2), round(s_am, 4), am_routes])
+                    writer.writerow([img_name, "AHF (Proposed)", round(p_ah, 2), round(s_ah, 4), ah_routes])
                 else:
-                    writer.writerow([img_name, "Hybrid Filter (HF)", "-", "-", hf_routes])
-                    writer.writerow([img_name, "AMSHF (Experiment)", "-", "-", am_routes])
+                    # writer.writerow([img_name, "Hybrid Filter (HF)", "-", "-", hf_routes])
+                    # writer.writerow([img_name, "AMSHF (Experiment)", "-", "-", am_routes])
+                    writer.writerow([img_name, "AHF (Proposed)", "-", "-", ah_routes])
 
                 
         print(f" -> 성공적으로 데이터 추출 완료: {csv_filename}")

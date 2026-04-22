@@ -16,16 +16,16 @@ import numpy as np
 from itertools import product
 from datetime import datetime
 
-from Hybrid_Filter import hybrid_filter
+from AHF import ahf_filter
 from tester import calculate_metrics
 
 
 # ────────────────────────────────────────────────
 # 탐색 파라미터 범위 설정 (필요에 따라 조정)
 # ────────────────────────────────────────────────
-COND1_RANGE = [2, 3, 4]        # 십자 Median 기준  (최대 4)
-COND2_RANGE = [2, 3, 4, 5]        # Group Mean 기준   (최대 8)
-COND3_RANGE = [1, 2, 3]        # 전체 Mean 기준    (최대 8)
+K_NEU_RANGE = [1, 2, 3]        # Neumann 임계값
+K_MOO_RANGE = [3, 4, 5]        # Moore Group 임계값
+K_MEAN_RANGE = [1, 2, 3, 4, 5] # Moore Mean 임계값
 
 
 def load_images(folder_name: str):
@@ -67,9 +67,9 @@ def run_combo(noise_paths, original, c1, c2, c3):
         img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
         if img is None:
             continue
-        result, routes = hybrid_filter(
+        result, routes = ahf_filter(
             img, return_route=True,
-            cond1_thresh=c1, cond2_thresh=c2, cond3_thresh=c3,
+            k_neu_th=c1, k_moo_th=c2, k_mean_th=c3,
             verbose=False
         )
         p, s = calculate_metrics(original, result)
@@ -102,11 +102,11 @@ def main():
 
     print(f"\n노이즈 이미지 {len(noise_paths)}개 발견.")
 
-    # 유효한 조합 생성 (cond3 < cond2 조건 필수)
+    # 유효한 조합 생성 (k_mean <= k_moo 조건 적용)
     combos = [
-        (c1, c2, c3)
-        for c1, c2, c3 in product(COND1_RANGE, COND2_RANGE, COND3_RANGE)
-        if c3 < c2
+        (kn, km_g, km_m)
+        for kn, km_g, km_m in product(K_NEU_RANGE, K_MOO_RANGE, K_MEAN_RANGE)
+        if km_m <= km_g
     ]
     total = len(combos)
     print(f"탐색 조합 수: {total}개\n")
@@ -121,12 +121,12 @@ def main():
     with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerow([
-            "cond1_thresh", "cond2_thresh", "cond3_thresh",
+            "k_neu", "k_moo", "k_mean",
             "Avg PSNR (dB)", "Avg SSIM", "Avg Routes"
         ])
 
         for idx, (c1, c2, c3) in enumerate(combos, 1):
-            print(f"[{idx:3d}/{total}] cond1={c1}  cond2={c2}  cond3={c3} ... ", end="", flush=True)
+            print(f"[{idx:3d}/{total}] k_neu={c1}  k_moo={c2}  k_mean={c3} ... ", end="", flush=True)
 
             metrics = run_combo(noise_paths, original, c1, c2, c3)
             if metrics is None:
@@ -150,12 +150,12 @@ def main():
     print("\n" + "=" * 60)
     print("  최적 파라미터 (PSNR 기준)")
     print("=" * 60)
-    print(f"  cond1={best_psnr[0]}  cond2={best_psnr[1]}  cond3={best_psnr[2]}")
+    print(f"  k_neu={best_psnr[0]}  k_moo={best_psnr[1]}  k_mean={best_psnr[2]}")
     print(f"  PSNR = {best_psnr[3]:.2f} dB   SSIM = {best_psnr[4]:.4f}   Routes = {best_psnr[5]:.1f}")
 
     if best_ssim[:3] != best_psnr[:3]:
         print("\n  최적 파라미터 (SSIM 기준, PSNR 기준과 다를 경우)")
-        print(f"  cond1={best_ssim[0]}  cond2={best_ssim[1]}  cond3={best_ssim[2]}")
+        print(f"  k_neu={best_ssim[0]}  k_moo={best_ssim[1]}  k_mean={best_ssim[2]}")
         print(f"  PSNR = {best_ssim[3]:.2f} dB   SSIM = {best_ssim[4]:.4f}   Routes = {best_ssim[5]:.1f}")
 
     print(f"\n결과 CSV 저장 완료 → {csv_path}")
