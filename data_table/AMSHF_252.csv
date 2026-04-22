@@ -1,0 +1,144 @@
+﻿Image Name,Filter Name,PSNR (dB),SSIM,Route Count
+baboon_10noise.bmp,Hybrid Filter (HF),32.89,0.9773,1
+baboon_10noise.bmp,AMSHF (Experiment),32.9,0.9773,1
+baboon_10noise.bmp,AHF (Proposed),32.9,0.9773,1
+baboon_20noise.bmp,Hybrid Filter (HF),29.61,0.9507,1
+baboon_20noise.bmp,AMSHF (Experiment),29.62,0.9508,1
+baboon_20noise.bmp,AHF (Proposed),29.62,0.9508,1
+baboon_30noise.bmp,Hybrid Filter (HF),27.45,0.9178,1
+baboon_30noise.bmp,AMSHF (Experiment),27.47,0.9181,1
+baboon_30noise.bmp,AHF (Proposed),27.48,0.9182,1
+baboon_40noise.bmp,Hybrid Filter (HF),25.84,0.8791,1
+baboon_40noise.bmp,AMSHF (Experiment),25.85,0.8794,1
+baboon_40noise.bmp,AHF (Proposed),25.88,0.8797,1
+baboon_50noise.bmp,Hybrid Filter (HF),24.59,0.8364,1
+baboon_50noise.bmp,AMSHF (Experiment),24.61,0.8368,1
+baboon_50noise.bmp,AHF (Proposed),24.69,0.8384,1
+baboon_60noise.bmp,Hybrid Filter (HF),23.25,0.7799,1
+baboon_60noise.bmp,AMSHF (Experiment),23.26,0.78,1
+baboon_60noise.bmp,AHF (Proposed),23.45,0.7843,1
+baboon_70noise.bmp,Hybrid Filter (HF),21.99,0.7069,2
+baboon_70noise.bmp,AMSHF (Experiment),21.99,0.707,2
+baboon_70noise.bmp,AHF (Proposed),22.25,0.7112,2
+baboon_80noise.bmp,Hybrid Filter (HF),20.67,0.6109,2
+baboon_80noise.bmp,AMSHF (Experiment),20.67,0.6109,2
+baboon_80noise.bmp,AHF (Proposed),21.03,0.6128,2
+baboon_90noise.bmp,Hybrid Filter (HF),19.11,0.4674,3
+baboon_90noise.bmp,AMSHF (Experiment),19.11,0.4674,3
+baboon_90noise.bmp,AHF (Proposed),19.54,0.4635,3
+
+Image Name,Filter Name,PSNR (dB),SSIM,Route Count
+barbara_10noise.bmp,Hybrid Filter (HF),32.08,0.9833,1
+barbara_10noise.bmp,AMSHF (Experiment),32.08,0.9833,1
+barbara_10noise.bmp,AHF (Proposed),32.08,0.9833,1
+barbara_20noise.bmp,Hybrid Filter (HF),28.72,0.963,1
+barbara_20noise.bmp,AMSHF (Experiment),28.74,0.9631,1
+barbara_20noise.bmp,AHF (Proposed),28.74,0.9631,1
+barbara_30noise.bmp,Hybrid Filter (HF),26.79,0.9401,1
+barbara_30noise.bmp,AMSHF (Experiment),26.82,0.9405,1
+barbara_30noise.bmp,AHF (Proposed),26.82,0.9405,1
+barbara_40noise.bmp,Hybrid Filter (HF),25.18,0.913,1
+barbara_40noise.bmp,AMSHF (Experiment),25.21,0.9134,1
+barbara_40noise.bmp,AHF (Proposed),25.23,0.9137,1
+barbara_50noise.bmp,Hybrid Filter (HF),23.83,0.88,1
+barbara_50noise.bmp,AMSHF (Experiment),23.85,0.8804,1
+barbara_50noise.bmp,AHF (Proposed),23.93,0.8817,1
+barbara_60noise.bmp,Hybrid Filter (HF),22.57,0.84,1
+barbara_60noise.bmp,AMSHF (Experiment),22.59,0.8403,1
+barbara_60noise.bmp,AHF (Proposed),22.74,0.8428,1
+barbara_70noise.bmp,Hybrid Filter (HF),21.43,0.7893,2
+barbara_70noise.bmp,AMSHF (Experiment),21.44,0.7893,2
+barbara_70noise.bmp,AHF (Proposed),21.68,0.7917,2
+barbara_80noise.bmp,Hybrid Filter (HF),20.17,0.7213,2
+barbara_80noise.bmp,AMSHF (Experiment),20.17,0.7214,2
+barbara_80noise.bmp,AHF (Proposed),20.46,0.7173,2
+barbara_90noise.bmp,Hybrid Filter (HF),18.67,0.6232,3
+barbara_90noise.bmp,AMSHF (Experiment),18.67,0.6233,3
+barbara_90noise.bmp,AHF (Proposed),19.05,0.6159,3
+
+Image Name,Filter Name,PSNR (dB),SSIM,Route Count
+cameraman_10noise.bmp,Hybrid Filter (HF),44.91,0.9973,1
+cameraman_10noise.bmp,AMSHF (Experiment),44.93,0.9973,1
+cameraman_10noise.bmp,AHF (Proposed),44.93,0.9973,1
+cameraman_20noise.bmp,Hybrid Filter (HF),40.36,0.9935,1
+cameraman_20noise.bmp,AMSHF (Experiment),40.44,0.9935,1
+cameraman_20noise.bmp,AHF (Proposed),40.44,0.9935,1
+cameraman_30noise.bmp,Hybrid Filter (HF),37.88,0.9887,1
+cameraman_30noise.bmp,AMSHF (Experiment),37.97,0.9889,1
+cameraman_30noise.bmp,AHF (Proposed),38.0,0.9889,1
+cameraman_40noise.bmp,Hybrid Filter (HF),35.75,0.9825,1
+cameraman_40noise.bmp,AMSHF (Experiment),35.88,0.9828,1
+cameraman_40noise.bmp,AHF (Proposed),35.95,0.983,1
+cameraman_50noise.bmp,Hybrid Filter (HF),33.98,0.9742,1
+cameraman_50noise.bmp,AMSHF (Experiment),34.05,0.9744,1
+cameraman_50noise.bmp,AHF (Proposed),34.2,0.975,1
+cameraman_60noise.bmp,Hybrid Filter (HF),32.01,0.9617,1
+cameraman_60noise.bmp,AMSHF (Experiment),32.05,0.9618,1
+cameraman_60noise.bmp,AHF (Proposed),32.3,0.9629,1
+cameraman_70noise.bmp,Hybrid Filter (HF),30.2,0.9428,2
+cameraman_70noise.bmp,AMSHF (Experiment),30.21,0.9429,2
+cameraman_70noise.bmp,AHF (Proposed),30.28,0.9436,2
+cameraman_80noise.bmp,Hybrid Filter (HF),27.98,0.9127,2
+cameraman_80noise.bmp,AMSHF (Experiment),27.98,0.9127,2
+cameraman_80noise.bmp,AHF (Proposed),27.71,0.9081,2
+cameraman_90noise.bmp,Hybrid Filter (HF),25.24,0.8522,3
+cameraman_90noise.bmp,AMSHF (Experiment),25.24,0.8522,3
+cameraman_90noise.bmp,AHF (Proposed),24.91,0.8402,3
+
+Image Name,Filter Name,PSNR (dB),SSIM,Route Count
+lena_10noise.bmp,Hybrid Filter (HF),43.3,0.9916,1
+lena_10noise.bmp,AMSHF (Experiment),43.3,0.9916,1
+lena_10noise.bmp,AHF (Proposed),43.3,0.9916,1
+lena_20noise.bmp,Hybrid Filter (HF),39.26,0.9806,1
+lena_20noise.bmp,AMSHF (Experiment),39.34,0.9808,1
+lena_20noise.bmp,AHF (Proposed),39.34,0.9808,1
+lena_30noise.bmp,Hybrid Filter (HF),37.13,0.9691,1
+lena_30noise.bmp,AMSHF (Experiment),37.18,0.9693,1
+lena_30noise.bmp,AHF (Proposed),37.18,0.9693,1
+lena_40noise.bmp,Hybrid Filter (HF),35.29,0.9552,1
+lena_40noise.bmp,AMSHF (Experiment),35.33,0.9555,1
+lena_40noise.bmp,AHF (Proposed),35.39,0.9558,1
+lena_50noise.bmp,Hybrid Filter (HF),33.8,0.9393,1
+lena_50noise.bmp,AMSHF (Experiment),33.85,0.9396,1
+lena_50noise.bmp,AHF (Proposed),33.97,0.9407,1
+lena_60noise.bmp,Hybrid Filter (HF),32.13,0.9191,1
+lena_60noise.bmp,AMSHF (Experiment),32.15,0.9192,1
+lena_60noise.bmp,AHF (Proposed),32.34,0.9218,1
+lena_70noise.bmp,Hybrid Filter (HF),30.57,0.8914,2
+lena_70noise.bmp,AMSHF (Experiment),30.58,0.8915,2
+lena_70noise.bmp,AHF (Proposed),30.65,0.8951,2
+lena_80noise.bmp,Hybrid Filter (HF),28.69,0.8503,2
+lena_80noise.bmp,AMSHF (Experiment),28.69,0.8503,2
+lena_80noise.bmp,AHF (Proposed),28.63,0.8518,2
+lena_90noise.bmp,Hybrid Filter (HF),26.23,0.7797,3
+lena_90noise.bmp,AMSHF (Experiment),26.23,0.7797,3
+lena_90noise.bmp,AHF (Proposed),26.04,0.7767,3
+
+Image Name,Filter Name,PSNR (dB),SSIM,Route Count
+pepper_10noise.bmp,Hybrid Filter (HF),42.0,0.9838,1
+pepper_10noise.bmp,AMSHF (Experiment),42.01,0.9838,1
+pepper_10noise.bmp,AHF (Proposed),42.01,0.9838,1
+pepper_20noise.bmp,Hybrid Filter (HF),38.12,0.9655,1
+pepper_20noise.bmp,AMSHF (Experiment),38.13,0.9656,1
+pepper_20noise.bmp,AHF (Proposed),38.14,0.9656,1
+pepper_30noise.bmp,Hybrid Filter (HF),35.63,0.9464,1
+pepper_30noise.bmp,AMSHF (Experiment),35.67,0.9466,1
+pepper_30noise.bmp,AHF (Proposed),35.68,0.9467,1
+pepper_40noise.bmp,Hybrid Filter (HF),33.7,0.9276,1
+pepper_40noise.bmp,AMSHF (Experiment),33.75,0.9281,1
+pepper_40noise.bmp,AHF (Proposed),33.87,0.9284,1
+pepper_50noise.bmp,Hybrid Filter (HF),32.14,0.9079,1
+pepper_50noise.bmp,AMSHF (Experiment),32.18,0.9083,1
+pepper_50noise.bmp,AHF (Proposed),32.41,0.9099,1
+pepper_60noise.bmp,Hybrid Filter (HF),30.51,0.8861,1
+pepper_60noise.bmp,AMSHF (Experiment),30.53,0.8863,1
+pepper_60noise.bmp,AHF (Proposed),30.88,0.8907,2
+pepper_70noise.bmp,Hybrid Filter (HF),29.06,0.8581,2
+pepper_70noise.bmp,AMSHF (Experiment),29.06,0.8583,2
+pepper_70noise.bmp,AHF (Proposed),29.45,0.8664,2
+pepper_80noise.bmp,Hybrid Filter (HF),27.48,0.8201,2
+pepper_80noise.bmp,AMSHF (Experiment),27.49,0.8202,2
+pepper_80noise.bmp,AHF (Proposed),27.69,0.8288,2
+pepper_90noise.bmp,Hybrid Filter (HF),25.3,0.7544,3
+pepper_90noise.bmp,AMSHF (Experiment),25.3,0.7545,3
+pepper_90noise.bmp,AHF (Proposed),25.22,0.7603,3
