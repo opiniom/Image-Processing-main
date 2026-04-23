@@ -149,7 +149,7 @@ def amshf_filter(A, return_route=False, return_stats=False, verbose=True,
             img_filt[res_m, res_n] = new_vals[valid_mask].astype(np.uint8)
             restored_this_route += np.sum(valid_mask)
 
-        if restored_this_route == 0 or route_count >= 30:
+        if restored_this_route == 0 or route_count >= 10:
             if verbose:
                 print(f"[필터] 조기 종료 혹은 최대 루프 도달 (루트 {route_count})")
             break
