@@ -1,6 +1,7 @@
 import os
 import sys
 import streamlit as st
+# pyrefly: ignore [missing-import]
 import cv2
 import numpy as np
 import pandas as pd
@@ -21,10 +22,9 @@ st.set_page_config(page_title="AMSHF Restoration Platform", layout="wide")
 
 st.markdown("""
     <style>
-    .main { background-color: #0e1117; color: #ffffff; }
     .metric-card {
-        background-color: #1e2129;
-        border: 1px solid #343741;
+        background-color: var(--secondary-background-color);
+        border: 1px solid var(--secondary-background-color);
         border-radius: 10px;
         padding: 20px;
         margin-bottom: 15px;
@@ -70,17 +70,8 @@ elif source_option == "Sample Set":
 st.title("🛡️ AMSHF Factory Image Restoration")
 
 if input_image is not None:
-    # 원본 이미지 표시 (디버깅용)
-    st.subheader("Original Input Image")
-    st.image(input_image, caption="Uploaded/Selected Image", use_column_width=True)
-
-    # 슬라이더 상태 초기값 설정
-    if "k_neu_main" not in st.session_state:
-        st.session_state.k_neu_main = 2
-    if "k_moo_main" not in st.session_state:
-        st.session_state.k_moo_main = 5
-    k_neu = st.session_state.k_neu_main
-    k_moo = st.session_state.k_moo_main
+    k_neu = 2
+    k_moo = 5
 
     # 1단계: 처리 속도를 위해 리사이징 (선택 사항)
     img_resized = cv2.resize(input_image, (512, 512))
@@ -104,9 +95,7 @@ if input_image is not None:
     )
     proc_time = (time.time() - start_t) * 1000
 
-    # 필터 적용 확인 (stats 출력)
-    st.write(f"**Filter Stats:** {stats}")
-    st.write(f"**Routes:** {routes}")
+
     
     # 역산된 노이즈 비율 (복원된 픽셀 수 기반)
     corrected_pixels = sum(stats.values())
@@ -120,44 +109,45 @@ if input_image is not None:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.subheader("Visual Comparison")
         c1, c2 = st.columns(2)
-        c1.image(img_resized, caption=f"Input Image ({input_noise_density:.1f}% noise)", use_column_width=True)
-        c2.image(restored_img, caption=f"AMSHF Restored ({proc_time:.1f}ms)", use_column_width=True)
+        c1.image(img_resized, caption=f"Input Image ({input_noise_density:.1f}% noise)", use_container_width=True)
+        c2.image(restored_img, caption=f"AMSHF Restored ({proc_time:.1f}ms)", use_container_width=True)
         st.write(f"**Total Processing Routes (Convergence):** {routes}")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-        st.subheader("⚙️ AMSHF Parameters")
-        st.slider("k_neu (Neumann Threshold)", 1, 4, st.session_state.k_neu_main, key='k_neu_main')
-        st.slider("k_moo (Moore Threshold)", 1, 8, st.session_state.k_moo_main, key='k_moo_main')
-        st.markdown('</div>', unsafe_allow_html=True)
+
 
     with col_metrics:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.subheader("Reliability Analysis")
         
-        # 알고리즘 내부 로직 사용량 파이 차트 (stats 변수 활용)
-        logic_df = pd.DataFrame({
-            'Logic': ['Neumann (Median)', 'Moore (Group Mean)', 'Fallback (Mean)'],
-            'Count': [stats.get('median', 0), stats.get('group', 0), stats.get('mean', 0)]
-        })
-        fig_pie = px.pie(logic_df, values='Count', names='Logic', hole=0.5,
-                         color_discrete_sequence=['#00ffcc', '#3A7BD5', '#7F00FF'])
-        fig_pie.update_layout(margin=dict(l=0,r=0,t=30,b=0), height=250, 
-                             paper_bgcolor='rgba(0,0,0,0)', font_color="white")
-        st.plotly_chart(fig_pie, use_container_width=True)
+        # 70% 비율로 축소하기 위해 내부 컬럼 사용
+        c1, c2, c3 = st.columns([0.15, 0.7, 0.15])
+        
+        with c2:
+            # 알고리즘 내부 로직 사용량 파이 차트 (stats 변수 활용)
+            logic_df = pd.DataFrame({
+                'Logic': ['Neumann (Median)', 'Moore (Group Mean)', 'Fallback (Mean)'],
+                'Count': [stats.get('median', 0), stats.get('group', 0), stats.get('mean', 0)]
+            })
+            # 밝은 배경에서도 잘 보이도록 색상 명도/채도 조절 (#00ffcc -> #12b886)
+            fig_pie = px.pie(logic_df, values='Count', names='Logic', hole=0.5,
+                             color_discrete_sequence=['#12b886', '#3A7BD5', '#7F00FF'])
+            fig_pie.update_layout(margin=dict(l=40,r=40,t=30,b=10), height=190, 
+                                 paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_pie, use_container_width=True)
 
-        # 노이즈 밀도 추산 (복원된 픽셀 수 기반)
-        fig_gauge = go.Figure()
-        fig_gauge.add_trace(go.Indicator(
-            mode="gauge+number",
-            value=estimated_noise_density,
-            title={"text": "Estimated Noise Density (%)", "font": {"size": 16, "color": "white"}},
-            gauge={"axis": {"range": [0, 100]}, "bar": {"color": "#00ffcc"}},
-            number={"font": {"size": 30, "color": "white"}, "valueformat": ".1f"}
-        ))
-        fig_gauge.update_layout(height=200, margin=dict(l=30,r=30,t=50,b=20), 
-                               paper_bgcolor='rgba(0,0,0,0)', font_color="white")
-        st.plotly_chart(fig_gauge, use_container_width=True)
+            # 노이즈 밀도 추산 (복원된 픽셀 수 기반)
+            fig_gauge = go.Figure()
+            fig_gauge.add_trace(go.Indicator(
+                mode="gauge+number",
+                value=estimated_noise_density,
+                title={"text": "Estimated Noise Density (%)", "font": {"size": 14}},
+                gauge={"axis": {"range": [0, 100]}, "bar": {"color": "#12b886"}},
+                number={"font": {"size": 24}, "valueformat": ".1f"}
+            ))
+            fig_gauge.update_layout(height=160, margin=dict(l=30,r=30,t=60,b=10), 
+                                    paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_gauge, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 else:
