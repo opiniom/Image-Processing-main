@@ -1,0 +1,47 @@
+import cv2
+import numpy as np
+import os
+from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import peak_signal_noise_ratio as psnr
+
+# 1. 이미지 로드 함수
+def load_images(org_path, target_path):
+    # 경로에 파일이 있는지 확인하는 방어적 프로그래밍
+    if not os.path.exists(org_path) or not os.path.exists(target_path):
+        print("파일 경로를 찾을 수 없습니다. 경로를 다시 확인해주세요.")
+        return None, None
+
+    # 이미지를 흑백(Grayscale)으로 읽어옴
+    img1 = cv2.imread(org_path, cv2.IMREAD_GRAYSCALE)
+    img2 = cv2.imread(target_path, cv2.IMREAD_GRAYSCALE)
+    
+    return img1, img2
+
+# 2. 지표 계산 및 출력 함수
+def display_metrics(img1, img2):
+    if img1 is None or img2 is None: return
+
+    # PSNR, SSIM 계산
+    psnr_val = psnr(img1, img2)
+    ssim_val = ssim(img1, img2, data_range=img1.max() - img1.min())
+
+    print(f"--- 정량 지표 결과 ---")
+    print(f"PSNR: {psnr_val:.2f} dB")
+    print(f"SSIM: {ssim_val:.4f}")
+
+# --- 메인 실행부 ---
+# 여기에 본인의 이미지 파일 이름을 넣으세요.
+# 같은 폴더에 있다면 파일명만, 다른 폴더면 전체 경로(예: C:/images/test.jpg)를 넣습니다.
+original_file = "Lena512.jpg" 
+processed_file = "LenaNZ90_psmf.png"
+# 코드 적용 시작
+original, processed = load_images(original_file, processed_file)
+
+if original is not None:
+    display_metrics(original, processed)
+    
+    # (선택 사항) 화면에 이미지를 띄워 확인하고 싶을 때
+   # cv2.imshow("Original", original)
+    # cv2.imshow("Processed", processed)
+    cv2.waitKey(0) # 아무 키나 누르면 창이 닫힙니다.
+    cv2.destroyAllWindows()
